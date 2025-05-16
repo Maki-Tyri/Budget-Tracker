@@ -1,343 +1,193 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Budget Tracker</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <style>
-    body {
-      margin: 0;
-      font-family: Arial, sans-serif;
-      background: #f2f2f2;
-    }
-    .login-container, .dashboard, .section {
-      max-width: 400px;
-      margin: 80px auto;
-      padding: 20px;
-      background: white;
-      border-radius: 8px;
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    .hidden {
-      display: none;
-    }
-    input, button {
-      width: 100%;
-      padding: 10px;
-      margin-top: 10px;
-      border-radius: 5px;
-      border: 1px solid #ccc;
-    }
-    button {
-      background-color: #4CAF50;
-      color: white;
-      border: none;
-      cursor: pointer;
-    }
-    .icon-grid {
-      display: flex;
-      justify-content: space-around;
-      margin-top: 20px;
-      flex-wrap: wrap;
-    }
-    .icon {
-      text-align: center;
-      margin: 10px;
-      cursor: pointer;
-    }
-    .icon img {
-      width: 60px;
-    }
-    table, th, td {
-      width: 100%;
-      border: 1px solid #ccc;
-      border-collapse: collapse;
-      padding: 8px;
-    }
-    input.cost-box {
-      width: 40px;
-      margin-left: 5px;
-    }
-    @media (max-width: 500px) {
-      .login-container, .dashboard, .section {
-        margin: 20px;
-        width: auto;
-      }
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Budget Tracker with Firebase</title>
+<style>
+  body { font-family: Arial, sans-serif; margin: 0; padding: 20px; background: #f7f7f7; }
+  .container { max-width: 450px; margin: 30px auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 0 10px #aaa; }
+  input, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 5px; border: 1px solid #ccc; }
+  button { background: #28a745; color: white; border: none; cursor: pointer; }
+  button:hover { background: #218838; }
+  .hidden { display: none; }
+  h2, h3 { text-align: center; }
+  table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+  th, td { border: 1px solid #ccc; padding: 8px; text-align: center; }
+  .error { color: red; }
+</style>
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
 </head>
-<body onload="initApp()">
-  <div class="login-container" id="loginPage">
-    <h2>Login</h2>
-    <input type="text" id="username" placeholder="Username"/>
-    <input type="password" id="password" placeholder="Password"/>
-    <button onclick="login()">Login</button>
-  </div>
+<body>
 
-  <div class="dashboard hidden" id="mainPage">
-    <h2>Budget Dashboard</h2>
-    <div class="icon-grid">
-      <div class="icon" onclick="showSection('settings')">
-        <img src="https://img.icons8.com/ios-filled/50/settings.png"/><div>Settings</div>
-      </div>
-      <div class="icon" onclick="showSection('report')">
-        <img src="https://img.icons8.com/ios-filled/50/combo-chart.png"/><div>Report</div>
-      </div>
-      <div class="icon" onclick="showSection('grocery')">
-        <img src="https://img.icons8.com/ios-filled/50/shopping-cart.png"/><div>Grocery</div>
-      </div>
-      <div class="icon" onclick="showSection('online')">
-        <img src="https://img.icons8.com/ios-filled/50/online-store.png"/><div>Online</div>
-      </div>
-    </div>
-  </div>
+<div class="container" id="auth-container">
+  <h2>Budget Tracker Login</h2>
+  <input type="email" id="email" placeholder="Email" />
+  <input type="password" id="pass" placeholder="Password" />
+  <button onclick="login()">Login</button>
+  <button onclick="signup()">Sign Up</button>
+  <p class="error" id="auth-error"></p>
+</div>
 
-  <div class="section hidden" id="settings">
-    <h3>Settings</h3>
-    <input type="text" id="newUser" placeholder="New Username"/>
-    <input type="password" id="newPass" placeholder="New Password"/>
-    <button onclick="addUser()">Add User</button>
-    <input type="password" id="currentPass" placeholder="Current Password"/>
-    <input type="password" id="changePass" placeholder="New Password"/>
-    <button onclick="changePassword()">Change Password</button>
-    <button onclick="backToDashboard()">Back</button>
-  </div>
+<div class="container hidden" id="app-container">
+  <h2>Welcome, <span id="user-email"></span></h2>
+  <button onclick="logout()" style="background:#dc3545; margin-bottom: 20px;">Logout</button>
 
-  <div class="section hidden" id="report">
-    <h3>Income and Expenses</h3>
-    <input type="number" id="income" placeholder="Monthly Income"/>
-    <input type="number" id="expenses" placeholder="Total Expenses"/>
-    <button onclick="updateReport()">Update</button>
-    <p>Balance: ₱<span id="balance">0</span></p>
-    <table id="reportTable"><tr><th>Time</th><th>Income</th><th>Expenses</th></tr></table>
-    <button onclick="exportPDF()">Export PDF</button>
-    <button onclick="backToDashboard()">Back</button>
-  </div>
+  <h3>Monthly Income and Expenses</h3>
+  <input type="number" id="income" placeholder="Monthly Income" />
+  <input type="number" id="expenses" placeholder="Total Expenses" />
+  <button onclick="saveReport()">Save Report</button>
+  <p>Balance: ₱<span id="balance">0</span></p>
+  
+  <table id="report-table">
+    <thead><tr><th>Date</th><th>Income</th><th>Expenses</th><th>Balance</th></tr></thead>
+    <tbody></tbody>
+  </table>
+</div>
 
-  <div class="section hidden" id="grocery">
-    <h3>Grocery Budget</h3>
-    <input type="number" id="groceryBudget" placeholder="Grocery Budget"/>
-    <button onclick="updateGroceryExpenses()">Update</button>
-    <ul id="groceryList"></ul>
-    <button onclick="addGroceryItem()">Add Item</button>
-    <p>Remaining: ₱<span id="groceryBalance">0</span></p>
-    <button onclick="backToDashboard()">Back</button>
-  </div>
+<script>
+  // TODO: Paste your Firebase config here (get it from Firebase Console > Project Settings > SDK config)
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
+  };
 
-  <div class="section hidden" id="online">
-    <h3>Online Budget</h3>
-    <input type="number" id="onlineBudget" placeholder="Online Budget"/>
-    <button onclick="updateOnlineExpenses()">Update</button>
-    <ul id="onlineList"></ul>
-    <button onclick="addOnlineItem()">Add Item</button>
-    <p>Remaining: ₱<span id="onlineBalance">0</span></p>
-    <button onclick="backToDashboard()">Back</button>
-  </div>
+  // Initialize Firebase
+  firebase.initializeApp(firebaseConfig);
+  const auth = firebase.auth();
+  const db = firebase.firestore();
 
-  <script>
-    let users = JSON.parse(localStorage.getItem('users') || '{}');
-    let currentUser = '';
-    let groceryItems = [];
-    let onlineItems = [];
-    let reportItems = [];
+  const authContainer = document.getElementById('auth-container');
+  const appContainer = document.getElementById('app-container');
+  const userEmailSpan = document.getElementById('user-email');
+  const authError = document.getElementById('auth-error');
 
-    function initApp() {
-      loadData();
+  const incomeInput = document.getElementById('income');
+  const expensesInput = document.getElementById('expenses');
+  const balanceSpan = document.getElementById('balance');
+  const reportTableBody = document.querySelector('#report-table tbody');
+
+  let currentUserId = null;
+
+  // Listen for auth state changes
+  auth.onAuthStateChanged(user => {
+    if (user) {
+      currentUserId = user.uid;
+      userEmailSpan.textContent = user.email;
+      authContainer.classList.add('hidden');
+      appContainer.classList.remove('hidden');
+      loadReports();
+    } else {
+      currentUserId = null;
+      authContainer.classList.remove('hidden');
+      appContainer.classList.add('hidden');
+      clearInputs();
+      reportTableBody.innerHTML = '';
+      authError.textContent = '';
     }
+  });
 
-    function login() {
-      const u = username.value.trim();
-      const p = password.value.trim();
-      if (users[u] === p) {
-        currentUser = u;
-        loginPage.classList.add('hidden');
-        mainPage.classList.remove('hidden');
-      } else {
-        alert("Invalid credentials.");
-      }
+  function login() {
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('pass').value.trim();
+    authError.textContent = '';
+    if (!email || !pass) {
+      authError.textContent = "Please enter email and password.";
+      return;
     }
-
-    function addUser() {
-      const u = newUser.value.trim();
-      const p = newPass.value.trim();
-      if (u && p) {
-        users[u] = p;
-        localStorage.setItem('users', JSON.stringify(users));
-        alert("User added.");
-        newUser.value = '';
-        newPass.value = '';
-      }
-    }
-
-    function changePassword() {
-      const cp = currentPass.value;
-      const np = changePass.value;
-      if (users[currentUser] === cp && np) {
-        users[currentUser] = np;
-        localStorage.setItem('users', JSON.stringify(users));
-        alert("Password changed.");
-        currentPass.value = '';
-        changePass.value = '';
-      } else {
-        alert("Incorrect current password.");
-      }
-    }
-
-    function showSection(id) {
-      document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
-      document.getElementById(id).classList.remove('hidden');
-    }
-
-    function backToDashboard() {
-      document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
-      mainPage.classList.remove('hidden');
-    }
-
-    function updateReport() {
-      const income = parseFloat(document.getElementById('income').value) || 0;
-      const expenses = parseFloat(document.getElementById('expenses').value) || 0;
-      document.getElementById('balance').innerText = income - expenses;
-      localStorage.setItem('income', income);
-      localStorage.setItem('expenses', expenses);
-      const now = new Date().toLocaleString();
-      const entry = { time: now, income, expenses };
-      reportItems.push(entry);
-      localStorage.setItem('reportItems', JSON.stringify(reportItems));
-      updateReportList();
-    }
-
-    function updateReportList() {
-      const reportTable = document.getElementById('reportTable');
-      reportTable.innerHTML = '<tr><th>Time</th><th>Income</th><th>Expenses</th></tr>';
-      reportItems.forEach(({ time, income, expenses }) => {
-        const row = document.createElement('tr');
-        row.innerHTML = `<td>${time}</td><td>₱${income}</td><td>₱${expenses}</td>`;
-        reportTable.appendChild(row);
+    auth.signInWithEmailAndPassword(email, pass)
+      .catch(error => {
+        authError.textContent = error.message;
       });
-    }
+  }
 
-    function updateGroceryExpenses() {
-      let budget = parseFloat(document.getElementById('groceryBudget').value) || 0;
-      let spent = 0;
-      document.querySelectorAll('#groceryList li').forEach(li => {
-        const cb = li.querySelector('input[type=checkbox]');
-        const costInput = li.querySelector('input[type=number]');
-        if (cb.checked && costInput.value) {
-          spent += parseFloat(costInput.value) || 0;
-        }
+  function signup() {
+    const email = document.getElementById('email').value.trim();
+    const pass = document.getElementById('pass').value.trim();
+    authError.textContent = '';
+    if (!email || !pass) {
+      authError.textContent = "Please enter email and password.";
+      return;
+    }
+    auth.createUserWithEmailAndPassword(email, pass)
+      .then(() => {
+        alert("Sign up successful! You can now login.");
+      })
+      .catch(error => {
+        authError.textContent = error.message;
       });
-      localStorage.setItem('groceryBudget', budget);
-      document.getElementById('groceryBalance').innerText = budget - spent;
-    }
+  }
 
-    function updateOnlineExpenses() {
-      let budget = parseFloat(document.getElementById('onlineBudget').value) || 0;
-      let spent = 0;
-      document.querySelectorAll('#onlineList li input[type=checkbox]').forEach(cb => {
-        if (cb.checked) {
-          const cost = parseFloat(cb.parentElement.getAttribute('data-cost')) || 0;
-          spent += cost;
-        }
+  function logout() {
+    auth.signOut();
+  }
+
+  function clearInputs() {
+    incomeInput.value = '';
+    expensesInput.value = '';
+    balanceSpan.textContent = '0';
+  }
+
+  async function saveReport() {
+    const income = parseFloat(incomeInput.value) || 0;
+    const expenses = parseFloat(expensesInput.value) || 0;
+    const balance = income - expenses;
+
+    if (!currentUserId) return;
+
+    try {
+      await db.collection('users').doc(currentUserId).collection('reports').add({
+        income,
+        expenses,
+        balance,
+        timestamp: firebase.firestore.FieldValue.serverTimestamp()
       });
-      localStorage.setItem('onlineBudget', budget);
-      document.getElementById('onlineBalance').innerText = budget - spent;
+      alert('Report saved.');
+      loadReports();
+    } catch (err) {
+      alert('Error saving report: ' + err.message);
     }
+  }
 
-    function addGroceryItem() {
-      const item = prompt('Enter grocery item:');
-      if (!item) return;
-      const li = document.createElement('li');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      const costInput = document.createElement('input');
-      costInput.type = 'number';
-      costInput.placeholder = '₱';
-      costInput.style.display = 'none';
-      costInput.classList.add('cost-box');
-      costInput.onchange = updateGroceryExpenses;
-      cb.onchange = () => {
-        costInput.style.display = cb.checked ? 'inline-block' : 'none';
-        updateGroceryExpenses();
-      };
-      li.appendChild(cb);
-      li.appendChild(document.createTextNode(` ${item} `));
-      li.appendChild(costInput);
-      document.getElementById('groceryList').appendChild(li);
-      groceryItems.push({ item, cost: 0 });
-      localStorage.setItem('groceryItems', JSON.stringify(groceryItems));
+  async function loadReports() {
+    if (!currentUserId) return;
+
+    const snapshot = await db.collection('users').doc(currentUserId).collection('reports')
+      .orderBy('timestamp', 'desc').limit(10).get();
+
+    reportTableBody.innerHTML = '';
+
+    snapshot.forEach(doc => {
+      const data = doc.data();
+      const date = data.timestamp ? data.timestamp.toDate().toLocaleString() : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${date}</td>
+        <td>₱${data.income.toFixed(2)}</td>
+        <td>₱${data.expenses.toFixed(2)}</td>
+        <td>₱${data.balance.toFixed(2)}</td>
+      `;
+      reportTableBody.appendChild(tr);
+    });
+
+    // Update balance display with latest data
+    if (snapshot.docs.length > 0) {
+      const latest = snapshot.docs[0].data();
+      incomeInput.value = latest.income;
+      expensesInput.value = latest.expenses;
+      balanceSpan.textContent = latest.balance.toFixed(2);
+    } else {
+      clearInputs();
     }
+  }
+</script>
 
-    function addOnlineItem() {
-      const item = prompt("Enter item name:");
-      const cost = parseFloat(prompt("Enter item cost:")) || 0;
-      const li = document.createElement('li');
-      const cb = document.createElement('input');
-      cb.type = 'checkbox';
-      cb.onchange = () => updateOnlineExpenses();
-      li.appendChild(cb);
-      li.appendChild(document.createTextNode(` ${item} - ₱${cost}`));
-      li.setAttribute('data-cost', cost);
-      document.getElementById('onlineList').appendChild(li);
-      onlineItems.push({ item, cost });
-      localStorage.setItem('onlineItems', JSON.stringify(onlineItems));
-    }
-
-    function loadData() {
-      groceryItems = JSON.parse(localStorage.getItem('groceryItems')) || [];
-      onlineItems = JSON.parse(localStorage.getItem('onlineItems')) || [];
-      reportItems = JSON.parse(localStorage.getItem('reportItems')) || [];
-
-      document.getElementById('income').value = localStorage.getItem('income') || '';
-      document.getElementById('expenses').value = localStorage.getItem('expenses') || '';
-      document.getElementById('groceryBudget').value = localStorage.getItem('groceryBudget') || '';
-      document.getElementById('onlineBudget').value = localStorage.getItem('onlineBudget') || '';
-
-      groceryItems.forEach(({ item }) => {
-        const li = document.createElement('li');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        const costInput = document.createElement('input');
-        costInput.type = 'number';
-        costInput.placeholder = '₱';
-        costInput.classList.add('cost-box');
-        costInput.style.display = 'none';
-        costInput.onchange = updateGroceryExpenses;
-        cb.onchange = () => {
-          costInput.style.display = cb.checked ? 'inline-block' : 'none';
-          updateGroceryExpenses();
-        };
-        li.appendChild(cb);
-        li.appendChild(document.createTextNode(` ${item} `));
-        li.appendChild(costInput);
-        document.getElementById('groceryList').appendChild(li);
-      });
-
-      onlineItems.forEach(({ item, cost }) => {
-        const li = document.createElement('li');
-        const cb = document.createElement('input');
-        cb.type = 'checkbox';
-        cb.onchange = () => updateOnlineExpenses();
-        li.appendChild(cb);
-        li.appendChild(document.createTextNode(` ${item} - ₱${cost}`));
-        li.setAttribute('data-cost', cost);
-        document.getElementById('onlineList').appendChild(li);
-      });
-
-      updateReportList();
-      updateGroceryExpenses();
-      updateOnlineExpenses();
-    }
-
-    async function exportPDF() {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
-      doc.text("Budget Report", 10, 10);
-      reportItems.forEach(({ time, income, expenses }, i) => {
-        doc.text(`${time} - Income: ₱${income} | Expenses: ₱${expenses}`, 10, 20 + i * 10);
-      });
-      doc.save("budget-report.pdf");
-    }
-  </script>
 </body>
 </html>
