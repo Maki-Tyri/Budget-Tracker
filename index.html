@@ -1,119 +1,343 @@
-.overlay {
-  background-color: rgba(255, 255, 255, 0.0);
-  padding: 20px;
-  border-radius: 15px;
-  text-align: center;
-  width: 90%;
-  max-width: 400px;
-  margin: auto;
-  margin-top: 20%;
-  opacity: 0;
-  animation: fadeIn 2s ease-in-out forwards;
-}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Budget Tracker</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f2f2f2;
+    }
+    .login-container, .dashboard, .section {
+      max-width: 400px;
+      margin: 80px auto;
+      padding: 20px;
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    .hidden {
+      display: none;
+    }
+    input, button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: 1px solid #ccc;
+    }
+    button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      cursor: pointer;
+    }
+    .icon-grid {
+      display: flex;
+      justify-content: space-around;
+      margin-top: 20px;
+      flex-wrap: wrap;
+    }
+    .icon {
+      text-align: center;
+      margin: 10px;
+      cursor: pointer;
+    }
+    .icon img {
+      width: 60px;
+    }
+    table, th, td {
+      width: 100%;
+      border: 1px solid #ccc;
+      border-collapse: collapse;
+      padding: 8px;
+    }
+    input.cost-box {
+      width: 40px;
+      margin-left: 5px;
+    }
+    @media (max-width: 500px) {
+      .login-container, .dashboard, .section {
+        margin: 20px;
+        width: auto;
+      }
+    }
+  </style>
+</head>
+<body onload="initApp()">
+  <div class="login-container" id="loginPage">
+    <h2>Login</h2>
+    <input type="text" id="username" placeholder="Username"/>
+    <input type="password" id="password" placeholder="Password"/>
+    <button onclick="login()">Login</button>
+  </div>
 
-.login-box {
-  background-color: white;
-  padding: 20px;
-  border-radius: 15px;
-  box-shadow: 0 0 15px rgba(0,0,0,0.2);
-}
+  <div class="dashboard hidden" id="mainPage">
+    <h2>Budget Dashboard</h2>
+    <div class="icon-grid">
+      <div class="icon" onclick="showSection('settings')">
+        <img src="https://img.icons8.com/ios-filled/50/settings.png"/><div>Settings</div>
+      </div>
+      <div class="icon" onclick="showSection('report')">
+        <img src="https://img.icons8.com/ios-filled/50/combo-chart.png"/><div>Report</div>
+      </div>
+      <div class="icon" onclick="showSection('grocery')">
+        <img src="https://img.icons8.com/ios-filled/50/shopping-cart.png"/><div>Grocery</div>
+      </div>
+      <div class="icon" onclick="showSection('online')">
+        <img src="https://img.icons8.com/ios-filled/50/online-store.png"/><div>Online</div>
+      </div>
+    </div>
+  </div>
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(30px); }
-  to { opacity: 1; transform: translateY(0); }
-}
+  <div class="section hidden" id="settings">
+    <h3>Settings</h3>
+    <input type="text" id="newUser" placeholder="New Username"/>
+    <input type="password" id="newPass" placeholder="New Password"/>
+    <button onclick="addUser()">Add User</button>
+    <input type="password" id="currentPass" placeholder="Current Password"/>
+    <input type="password" id="changePass" placeholder="New Password"/>
+    <button onclick="changePassword()">Change Password</button>
+    <button onclick="backToDashboard()">Back</button>
+  </div>
 
-h2 {
-  font-size: 24px;
-  color: #1877f2;
-  margin-bottom: 10px;
-}
+  <div class="section hidden" id="report">
+    <h3>Income and Expenses</h3>
+    <input type="number" id="income" placeholder="Monthly Income"/>
+    <input type="number" id="expenses" placeholder="Total Expenses"/>
+    <button onclick="updateReport()">Update</button>
+    <p>Balance: ₱<span id="balance">0</span></p>
+    <table id="reportTable"><tr><th>Time</th><th>Income</th><th>Expenses</th></tr></table>
+    <button onclick="exportPDF()">Export PDF</button>
+    <button onclick="backToDashboard()">Back</button>
+  </div>
 
-#proposal {
-  font-size: 30px;
-  margin-bottom: 20px;
-  color: #fff;
-  text-shadow: 1px 1px 4px #000;
-}
+  <div class="section hidden" id="grocery">
+    <h3>Grocery Budget</h3>
+    <input type="number" id="groceryBudget" placeholder="Grocery Budget"/>
+    <button onclick="updateGroceryExpenses()">Update</button>
+    <ul id="groceryList"></ul>
+    <button onclick="addGroceryItem()">Add Item</button>
+    <p>Remaining: ₱<span id="groceryBalance">0</span></p>
+    <button onclick="backToDashboard()">Back</button>
+  </div>
 
-button {
-  padding: 10px 20px;
-  border: none;
-  border-radius: 8px;
-  margin: 10px;
-  font-size: 16px;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-}
+  <div class="section hidden" id="online">
+    <h3>Online Budget</h3>
+    <input type="number" id="onlineBudget" placeholder="Online Budget"/>
+    <button onclick="updateOnlineExpenses()">Update</button>
+    <ul id="onlineList"></ul>
+    <button onclick="addOnlineItem()">Add Item</button>
+    <p>Remaining: ₱<span id="onlineBalance">0</span></p>
+    <button onclick="backToDashboard()">Back</button>
+  </div>
 
-#yesBtn {
-  background-color: #ff69b4;
-  color: white;
-}
+  <script>
+    let users = JSON.parse(localStorage.getItem('users') || '{}');
+    let currentUser = '';
+    let groceryItems = [];
+    let onlineItems = [];
+    let reportItems = [];
 
-#noBtn {
-  background-color: #aaa;
-  color: white;
-  transform: scale(1);
-}
+    function initApp() {
+      loadData();
+    }
 
-.heart {
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background: red;
-  transform: rotate(45deg);
-  animation: explode 1s ease-out forwards;
-}
+    function login() {
+      const u = username.value.trim();
+      const p = password.value.trim();
+      if (users[u] === p) {
+        currentUser = u;
+        loginPage.classList.add('hidden');
+        mainPage.classList.remove('hidden');
+      } else {
+        alert("Invalid credentials.");
+      }
+    }
 
-.heart::before,
-.heart::after {
-  content: "";
-  position: absolute;
-  width: 20px;
-  height: 20px;
-  background: red;
-  border-radius: 50%;
-}
+    function addUser() {
+      const u = newUser.value.trim();
+      const p = newPass.value.trim();
+      if (u && p) {
+        users[u] = p;
+        localStorage.setItem('users', JSON.stringify(users));
+        alert("User added.");
+        newUser.value = '';
+        newPass.value = '';
+      }
+    }
 
-.heart::before {
-  top: -10px;
-  left: 0;
-}
+    function changePassword() {
+      const cp = currentPass.value;
+      const np = changePass.value;
+      if (users[currentUser] === cp && np) {
+        users[currentUser] = np;
+        localStorage.setItem('users', JSON.stringify(users));
+        alert("Password changed.");
+        currentPass.value = '';
+        changePass.value = '';
+      } else {
+        alert("Incorrect current password.");
+      }
+    }
 
-.heart::after {
-  left: -10px;
-  top: 0;
-}
+    function showSection(id) {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
+      document.getElementById(id).classList.remove('hidden');
+    }
 
-@keyframes explode {
-  0% { opacity: 1; transform: scale(1) rotate(45deg); }
-  100% { opacity: 0; transform: scale(4) rotate(45deg); top: -200px; }
-}
+    function backToDashboard() {
+      document.querySelectorAll('.section').forEach(sec => sec.classList.add('hidden'));
+      mainPage.classList.remove('hidden');
+    }
 
-#loginPage, #proposalPage {
-  display: none;
-}
+    function updateReport() {
+      const income = parseFloat(document.getElementById('income').value) || 0;
+      const expenses = parseFloat(document.getElementById('expenses').value) || 0;
+      document.getElementById('balance').innerText = income - expenses;
+      localStorage.setItem('income', income);
+      localStorage.setItem('expenses', expenses);
+      const now = new Date().toLocaleString();
+      const entry = { time: now, income, expenses };
+      reportItems.push(entry);
+      localStorage.setItem('reportItems', JSON.stringify(reportItems));
+      updateReportList();
+    }
 
-#loginPage.show, #proposalPage.show {
-  display: block;
-}
+    function updateReportList() {
+      const reportTable = document.getElementById('reportTable');
+      reportTable.innerHTML = '<tr><th>Time</th><th>Income</th><th>Expenses</th></tr>';
+      reportItems.forEach(({ time, income, expenses }) => {
+        const row = document.createElement('tr');
+        row.innerHTML = `<td>${time}</td><td>₱${income}</td><td>₱${expenses}</td>`;
+        reportTable.appendChild(row);
+      });
+    }
 
-iframe {
-  display: none;
-}
+    function updateGroceryExpenses() {
+      let budget = parseFloat(document.getElementById('groceryBudget').value) || 0;
+      let spent = 0;
+      document.querySelectorAll('#groceryList li').forEach(li => {
+        const cb = li.querySelector('input[type=checkbox]');
+        const costInput = li.querySelector('input[type=number]');
+        if (cb.checked && costInput.value) {
+          spent += parseFloat(costInput.value) || 0;
+        }
+      });
+      localStorage.setItem('groceryBudget', budget);
+      document.getElementById('groceryBalance').innerText = budget - spent;
+    }
 
-@media (max-width: 600px) {
-  .overlay {
-    margin-top: 30%;
-  }
+    function updateOnlineExpenses() {
+      let budget = parseFloat(document.getElementById('onlineBudget').value) || 0;
+      let spent = 0;
+      document.querySelectorAll('#onlineList li input[type=checkbox]').forEach(cb => {
+        if (cb.checked) {
+          const cost = parseFloat(cb.parentElement.getAttribute('data-cost')) || 0;
+          spent += cost;
+        }
+      });
+      localStorage.setItem('onlineBudget', budget);
+      document.getElementById('onlineBalance').innerText = budget - spent;
+    }
 
-  #proposal {
-    font-size: 24px;
-  }
+    function addGroceryItem() {
+      const item = prompt('Enter grocery item:');
+      if (!item) return;
+      const li = document.createElement('li');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      const costInput = document.createElement('input');
+      costInput.type = 'number';
+      costInput.placeholder = '₱';
+      costInput.style.display = 'none';
+      costInput.classList.add('cost-box');
+      costInput.onchange = updateGroceryExpenses;
+      cb.onchange = () => {
+        costInput.style.display = cb.checked ? 'inline-block' : 'none';
+        updateGroceryExpenses();
+      };
+      li.appendChild(cb);
+      li.appendChild(document.createTextNode(` ${item} `));
+      li.appendChild(costInput);
+      document.getElementById('groceryList').appendChild(li);
+      groceryItems.push({ item, cost: 0 });
+      localStorage.setItem('groceryItems', JSON.stringify(groceryItems));
+    }
 
-  button {
-    font-size: 14px;
-  }
-}
+    function addOnlineItem() {
+      const item = prompt("Enter item name:");
+      const cost = parseFloat(prompt("Enter item cost:")) || 0;
+      const li = document.createElement('li');
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.onchange = () => updateOnlineExpenses();
+      li.appendChild(cb);
+      li.appendChild(document.createTextNode(` ${item} - ₱${cost}`));
+      li.setAttribute('data-cost', cost);
+      document.getElementById('onlineList').appendChild(li);
+      onlineItems.push({ item, cost });
+      localStorage.setItem('onlineItems', JSON.stringify(onlineItems));
+    }
+
+    function loadData() {
+      groceryItems = JSON.parse(localStorage.getItem('groceryItems')) || [];
+      onlineItems = JSON.parse(localStorage.getItem('onlineItems')) || [];
+      reportItems = JSON.parse(localStorage.getItem('reportItems')) || [];
+
+      document.getElementById('income').value = localStorage.getItem('income') || '';
+      document.getElementById('expenses').value = localStorage.getItem('expenses') || '';
+      document.getElementById('groceryBudget').value = localStorage.getItem('groceryBudget') || '';
+      document.getElementById('onlineBudget').value = localStorage.getItem('onlineBudget') || '';
+
+      groceryItems.forEach(({ item }) => {
+        const li = document.createElement('li');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        const costInput = document.createElement('input');
+        costInput.type = 'number';
+        costInput.placeholder = '₱';
+        costInput.classList.add('cost-box');
+        costInput.style.display = 'none';
+        costInput.onchange = updateGroceryExpenses;
+        cb.onchange = () => {
+          costInput.style.display = cb.checked ? 'inline-block' : 'none';
+          updateGroceryExpenses();
+        };
+        li.appendChild(cb);
+        li.appendChild(document.createTextNode(` ${item} `));
+        li.appendChild(costInput);
+        document.getElementById('groceryList').appendChild(li);
+      });
+
+      onlineItems.forEach(({ item, cost }) => {
+        const li = document.createElement('li');
+        const cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.onchange = () => updateOnlineExpenses();
+        li.appendChild(cb);
+        li.appendChild(document.createTextNode(` ${item} - ₱${cost}`));
+        li.setAttribute('data-cost', cost);
+        document.getElementById('onlineList').appendChild(li);
+      });
+
+      updateReportList();
+      updateGroceryExpenses();
+      updateOnlineExpenses();
+    }
+
+    async function exportPDF() {
+      const { jsPDF } = window.jspdf;
+      const doc = new jsPDF();
+      doc.text("Budget Report", 10, 10);
+      reportItems.forEach(({ time, income, expenses }, i) => {
+        doc.text(`${time} - Income: ₱${income} | Expenses: ₱${expenses}`, 10, 20 + i * 10);
+      });
+      doc.save("budget-report.pdf");
+    }
+  </script>
+</body>
+</html>
