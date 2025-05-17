@@ -1,253 +1,261 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Maki Web</title>
-    <style>
-        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
-        .login-container, .container { max-width: 600px; margin: auto; padding: 0px; }
-        .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 100px; text-align: center; }
-        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 5px; margin: 10px 0; border-radius: 50px; border: 1px solid #ccc; }
-        button { padding: 10px 15px; border: none; background: gray; color: white; border-radius: 10px; cursor: pointer; }
-        button:hover { background: #444; }
-        .dashboard, .page { display: none; }
-        .active { display: block; }
-        .nav-buttons button { margin: 5px; }
-        .section { background: white; padding: 50px; margin-bottom: 20px; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
-        .item input[type="number"] { width: 80px; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Maki Web</title>
+  <style>
+    body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
+    .login-container, .container { max-width: 600px; margin: auto; padding: 0px; }
+    .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 100px; text-align: center; }
+    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 5px; margin: 10px 0; border-radius: 50px; border: 1px solid #ccc; }
+    button { padding: 10px 15px; border: none; background: gray; color: white; border-radius: 10px; cursor: pointer; }
+    button:hover { background: #444; }
+    .dashboard, .page { display: none; }
+    .active { display: block; }
+    .nav-buttons button { margin: 5px; }
+    .section { background: white; padding: 50px; margin-bottom: 20px; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .item { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
+    .item input[type="number"] { width: 80px; }
+    .item button { background-color: red; border-radius: 50%; padding: 5px 10px; }
+  </style>
 </head>
 <body>
 <div class="login-container" id="loginPage">
-    <div class="login-box">
-        <h1>Maki Web</h1>
-        <input type="text" id="loginUsername" placeholder="Username">
-        <input type="password" id="loginPassword" placeholder="Password">
-        <button onclick="login()">Log In</button>
-        <p id="loginError" style="color:red;"></p>
-    </div>
+  <div class="login-box">
+    <h1>Maki Web</h1>
+    <input type="text" id="loginUsername" placeholder="Username">
+    <input type="password" id="loginPassword" placeholder="Password">
+    <button onclick="login()">Log In</button>
+    <p id="loginError" style="color:red;"></p>
+  </div>
 </div>
 
 <div class="container dashboard" id="dashboard">
-    <div class="nav-buttons">
-        <button onclick="showPage('settingsPage')">⚙️ Settings</button>
-        <button onclick="showPage('expensesPage')">📄 Expenses Report</button>
-        <button onclick="showPage('groceryPage')">🛒 Grocery</button>
-        <button onclick="showPage('onlinePage')">💻 Online</button>
-	<button onclick="showPage('marketPage')">🧺 Market</button>
-    </div>
+  <div class="nav-buttons">
+    <button onclick="showPage('settingsPage')">⚙️ Settings</button>
+    <button onclick="showPage('expensesPage')">📄 Expenses Report</button>
+    <button onclick="showPage('groceryPage')">🛒 Grocery</button>
+    <button onclick="showPage('onlinePage')">💻 Online</button>
+    <button onclick="showPage('marketPage')">🧺 Market</button>
+  </div>
 
-    <div id="settingsPage" class="page section">
-        <h2>Settings</h2>
-        <input type="text" id="newUsername" placeholder="New Username">
-        <input type="password" id="newPassword" placeholder="New Password">
-        <button onclick="addUser()">Add User</button>
-        <input type="text" id="removeUsername" placeholder="Username to Remove">
-        <button onclick="removeUser()">Remove User</button>
-    </div>
+  <!-- Settings Page -->
+  <div id="settingsPage" class="page section">
+    <h2>Settings</h2>
+    <input type="text" id="newUsername" placeholder="New Username">
+    <input type="password" id="newPassword" placeholder="New Password">
+    <button onclick="addUser()">Add User</button>
+    <input type="text" id="removeUsername" placeholder="Username to Remove">
+    <button onclick="removeUser()">Remove User</button>
+  </div>
 
-    <div id="expensesPage" class="page section">
-        <h2>Expenses Report</h2>
-        <input type="number" id="incomeInput" placeholder="Set Income" />
-        <button onclick="setIncome()">Update Income</button>
-        <p>Income: ₱<span id="incomeDisplay">0</span></p>
-        <p>Expenses: ₱<span id="expensesDisplay">0</span></p>
-        <p>Balance: ₱<span id="expensesBalance">0</span></p>
-        <label>Filter by Date:</label>
-        <input type="date" id="filterDate" onchange="loadExpenses()" min="2025-01-01" max="4045-12-31" />
-        <table border="1" style="width:100%; margin-top:10px;">
-            <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
-            <tbody id="expensesTable"></tbody>
-        </table>
-    </div>
+  <!-- Expenses Page -->
+  <div id="expensesPage" class="page section">
+    <h2>Expenses Report</h2>
+    <input type="number" id="incomeInput" placeholder="Set Income" />
+    <button onclick="setIncome()">Update Income</button>
+    <p>Income: ₱<span id="incomeDisplay">0</span></p>
+    <p>Expenses: ₱<span id="expensesDisplay">0</span></p>
+    <p>Balance: ₱<span id="expensesBalance">0</span></p>
+    <label>Filter by Date:</label>
+    <input type="date" id="filterDate" onchange="loadExpenses()" />
+    <table border="1" style="width:100%; margin-top:10px;">
+      <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
+      <tbody id="expensesTable"></tbody>
+    </table>
+  </div>
 
-    <div id="groceryPage" class="page section">
-        <h2>Grocery Budget</h2>
-        <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
-        <button onclick="setBudget('grocery')">Set Budget</button>
-        <p>Budget: ₱<span id="groceryBudget">0</span></p>
-        <p>Balance: ₱<span id="groceryBalance">0</span></p>
-        <input type="text" id="groceryItemName" placeholder="Item Name" />
-        <button onclick="addItem('grocery')">Add Item</button>
-        <div id="groceryItemsList"></div>
-    </div>
+  <!-- Grocery, Online, Market Pages -->
+  <div id="groceryPage" class="page section">
+    <h2>Grocery Budget</h2>
+    <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
+    <button onclick="setBudget('grocery')">Set Budget</button>
+    <p>Budget: ₱<span id="groceryBudget">0</span></p>
+    <p>Balance: ₱<span id="groceryBalance">0</span></p>
+    <input type="text" id="groceryItemName" placeholder="Item Name" />
+    <button onclick="addItem('grocery')">Add Item</button>
+    <div id="groceryItemsList"></div>
+  </div>
 
-    <div id="onlinePage" class="page section">
-        <h2>Online Budget</h2>
-        <input type="number" id="onlineBudgetInput" placeholder="Set Budget" />
-        <button onclick="setBudget('online')">Set Budget</button>
-        <p>Budget: ₱<span id="onlineBudget">0</span></p>
-        <p>Balance: ₱<span id="onlineBalance">0</span></p>
-        <input type="text" id="onlineItemName" placeholder="Item Name" />
-        <button onclick="addItem('online')">Add Item</button>
-        <div id="onlineItemsList"></div>
-    </div>
-	
-    <div id="marketPage" class="page section">
-        <h2>Market Budget</h2>
-        <input type="number" id="marketBudgetInput" placeholder="Set Budget" />
-        <button onclick="setBudget('market')">Set Budget</button>
-        <p>Budget: ₱<span id="marketBudget">0</span></p>
-        <p>Balance: ₱<span id="marketBalance">0</span></p>
-        <input type="text" id="marketItemName" placeholder="Item Name" />
-        <button onclick="addItem('market')">Add Item</button>
-        <div id="marketItemsList"></div>
-    </div>
+  <div id="onlinePage" class="page section">
+    <h2>Online Budget</h2>
+    <input type="number" id="onlineBudgetInput" placeholder="Set Budget" />
+    <button onclick="setBudget('online')">Set Budget</button>
+    <p>Budget: ₱<span id="onlineBudget">0</span></p>
+    <p>Balance: ₱<span id="onlineBalance">0</span></p>
+    <input type="text" id="onlineItemName" placeholder="Item Name" />
+    <button onclick="addItem('online')">Add Item</button>
+    <div id="onlineItemsList"></div>
+  </div>
+
+  <div id="marketPage" class="page section">
+    <h2>Market Budget</h2>
+    <input type="number" id="marketBudgetInput" placeholder="Set Budget" />
+    <button onclick="setBudget('market')">Set Budget</button>
+    <p>Budget: ₱<span id="marketBudget">0</span></p>
+    <p>Balance: ₱<span id="marketBalance">0</span></p>
+    <input type="text" id="marketItemName" placeholder="Item Name" />
+    <button onclick="addItem('market')">Add Item</button>
+    <div id="marketItemsList"></div>
+  </div>
 </div>
 
 <script>
-    document.addEventListener('DOMContentLoaded', () => {
-        let currentUser = '';
+document.addEventListener('DOMContentLoaded', () => {
+  let currentUser = '';
 
-        window.login = function() {
-            const username = document.getElementById('loginUsername').value;
-            const password = document.getElementById('loginPassword').value;
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            if ((username === 'Tapado' && password === '0000') || (users[username] === password)) {
-                currentUser = username;
-                document.getElementById('loginPage').style.display = 'none';
-                document.getElementById('dashboard').style.display = 'block';
-                loadItems('grocery');
-                loadItems('online');
-		loadItems('market');
-                loadExpenses();
-            } else {
-                document.getElementById('loginError').textContent = 'Invalid credentials';
-            }
-        };
+  window.login = function() {
+    const u = document.getElementById('loginUsername').value;
+    const p = document.getElementById('loginPassword').value;
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    if ((u === 'Tapado' && p === '0000') || users[u] === p) {
+      currentUser = u;
+      document.getElementById('loginPage').style.display = 'none';
+      document.getElementById('dashboard').style.display = 'block';
+      ['grocery', 'online', 'market'].forEach(loadItems);
+      loadExpenses();
+    } else {
+      document.getElementById('loginError').textContent = 'Invalid credentials';
+    }
+  };
 
-        window.showPage = function(pageId) {
-            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-            document.getElementById(pageId).classList.add('active');
-        };
+  window.showPage = id => {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+  };
 
-        window.addUser = function() {
-            const newUsername = document.getElementById('newUsername').value;
-            const newPassword = document.getElementById('newPassword').value;
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            users[newUsername] = newPassword;
-            localStorage.setItem('users', JSON.stringify(users));
-            alert('User added!');
-        };
+  window.addUser = function() {
+    const u = document.getElementById('newUsername').value;
+    const p = document.getElementById('newPassword').value;
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    users[u] = p;
+    localStorage.setItem('users', JSON.stringify(users));
+    alert('User added!');
+  };
 
-        window.removeUser = function() {
-            const removeUsername = document.getElementById('removeUsername').value;
-            const users = JSON.parse(localStorage.getItem('users') || '{}');
-            delete users[removeUsername];
-            localStorage.setItem('users', JSON.stringify(users));
-            alert('User removed!');
-        };
+  window.removeUser = function() {
+    const u = document.getElementById('removeUsername').value;
+    const users = JSON.parse(localStorage.getItem('users') || '{}');
+    delete users[u];
+    localStorage.setItem('users', JSON.stringify(users));
+    alert('User removed!');
+  };
 
-        window.setBudget = function(section) {
-            const budgetInput = document.getElementById(`${section}BudgetInput`).value;
-            localStorage.setItem(`${currentUser}_${section}Budget`, budgetInput);
-            localStorage.setItem(`${currentUser}_${section}Items`, '[]');
-            document.getElementById(`${section}Budget`).textContent = budgetInput;
-            loadItems(section);
-        };
+  window.setBudget = section => {
+    const value = document.getElementById(`${section}BudgetInput`).value;
+    localStorage.setItem(`${currentUser}_${section}Budget`, value);
+    document.getElementById(`${section}Budget`).textContent = value;
+    updateSummary(section);
+  };
 
-        window.addItem = function(section) {
-            const itemNameInput = document.getElementById(`${section}ItemName`);
-            const itemName = itemNameInput.value.trim();
-            if (!itemName) return;
+  window.addItem = section => {
+    const input = document.getElementById(`${section}ItemName`);
+    const name = input.value.trim();
+    if (!name) return;
+    const key = `${currentUser}_${section}Items`;
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    items.push({ name, price: 0, checked: false });
+    localStorage.setItem(key, JSON.stringify(items));
+    input.value = '';
+    loadItems(section);
+  };
 
-            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
-            items.push({ name: itemName, price: 0, checked: false });
-            localStorage.setItem(`${currentUser}_${section}Items`, JSON.stringify(items));
+  window.deleteItem = function(section, index) {
+    const key = `${currentUser}_${section}Items`;
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    items.splice(index, 1);
+    localStorage.setItem(key, JSON.stringify(items));
+    loadItems(section);
+  };
 
-            itemNameInput.value = '';
-            loadItems(section);
-        };
+  window.loadItems = section => {
+    const key = `${currentUser}_${section}Items`;
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    const list = document.getElementById(`${section}ItemsList`);
+    list.innerHTML = '';
 
-        window.loadItems = function(section) {
-            const list = document.getElementById(`${section}ItemsList`);
-            list.innerHTML = '';
-            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
-
-            items.forEach((item, index) => {
-                const div = document.createElement('div');
-                div.className = 'item';
-                div.innerHTML = `
-                    <label><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem('${section}', ${index}, this.checked)" /> ${item.name}</label>
-                    <input type="number" value="${item.price}" ${item.checked ? '' : 'disabled'} onchange="updatePrice('${section}', ${index}, this.value)" />
-                `;
-                list.appendChild(div);
-            });
-
-            document.getElementById(`${section}Budget`).textContent = localStorage.getItem(`${currentUser}_${section}Budget`) || '0';
-            updateSummary(section);
-        };
-
-        window.toggleItem = function(section, index, checked) {
-            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
-            items[index].checked = checked;
-            localStorage.setItem(`${currentUser}_${section}Items`, JSON.stringify(items));
-            loadItems(section);
-        };
-
-        window.updatePrice = function(section, index, value) {
-            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
-            items[index].price = parseFloat(value) || 0;
-            if (!items[index].date) {
-                items[index].date = new Date().toISOString().split('T')[0];
-            }
-            localStorage.setItem(`${currentUser}_${section}Items`, JSON.stringify(items));
-            updateSummary(section);
-        };
-
-        function updateSummary(section) {
-            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
-            const total = items.filter(i => i.checked).reduce((sum, item) => sum + Number(item.price), 0);
-            const budget = parseFloat(localStorage.getItem(`${currentUser}_${section}Budget`) || '0');
-            const balance = budget - total;
-            document.getElementById(`${section}Balance`).textContent = balance.toFixed(2);
-        }
-
-        window.setIncome = function() {
-            const amount = parseFloat(document.getElementById('incomeInput').value);
-            if (!isNaN(amount)) {
-                localStorage.setItem(`${currentUser}_income`, amount);
-                localStorage.setItem(`${currentUser}_incomeDate`, new Date().toISOString().split('T')[0]);
-                loadExpenses();
-            }
-        };
-
-        function loadExpenses() {
-            const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
-            const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
-            const filterDate = document.getElementById('filterDate')?.value || '';
-
-            document.getElementById('incomeDisplay').textContent = income;
-            const grocery = JSON.parse(localStorage.getItem(`${currentUser}_groceryItems`) || '[]');
-            const online = JSON.parse(localStorage.getItem(`${currentUser}_onlineItems`) || '[]');
-	    const market = JSON.parse(localStorage.getItem(`${currentUser}_marketItems`) || '[]');
-            const all = [...grocery, ...online, ...market].filter(i => i.checked);
-
-            let total = 0;
-            const tbody = document.getElementById('expensesTable');
-            tbody.innerHTML = '';
-
-            if (!filterDate || filterDate === incomeDate) {
-                const tr = document.createElement('tr');
-                tr.innerHTML = `<td>${incomeDate}</td><td>Income</td><td>₱${income.toFixed(2)}</td>`;
-                tbody.appendChild(tr);
-            }
-
-            all.forEach(item => {
-                if (!item.date) return;
-                if (!filterDate || filterDate === item.date) {
-                    total += parseFloat(item.price) || 0;
-                    const tr = document.createElement('tr');
-                    tr.innerHTML = `<td>${item.date}</td><td>${item.name}</td><td>₱${parseFloat(item.price).toFixed(2)}</td>`;
-                    tbody.appendChild(tr);
-                }
-            });
-
-            document.getElementById('expensesDisplay').textContent = total.toFixed(2);
-            document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
-        }
+    items.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.className = 'item';
+      div.innerHTML = `
+        <label><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem('${section}', ${index}, this.checked)" /> ${item.name}</label>
+        <input type="number" value="${item.price}" ${item.checked ? '' : 'disabled'} onchange="updatePrice('${section}', ${index}, this.value)" />
+        <button onclick="deleteItem('${section}', ${index})">🗑️</button>
+      `;
+      list.appendChild(div);
     });
+
+    document.getElementById(`${section}Budget`).textContent = localStorage.getItem(`${currentUser}_${section}Budget`) || '0';
+    updateSummary(section);
+  };
+
+  window.toggleItem = (section, index, checked) => {
+    const key = `${currentUser}_${section}Items`;
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    items[index].checked = checked;
+    localStorage.setItem(key, JSON.stringify(items));
+    loadItems(section);
+  };
+
+  window.updatePrice = (section, index, value) => {
+    const key = `${currentUser}_${section}Items`;
+    const items = JSON.parse(localStorage.getItem(key) || '[]');
+    items[index].price = parseFloat(value) || 0;
+    if (!items[index].date) {
+      items[index].date = new Date().toISOString().split('T')[0];
+    }
+    localStorage.setItem(key, JSON.stringify(items));
+    updateSummary(section);
+  };
+
+  function updateSummary(section) {
+    const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+    const total = items.filter(i => i.checked).reduce((sum, i) => sum + Number(i.price), 0);
+    const budget = parseFloat(localStorage.getItem(`${currentUser}_${section}Budget`) || '0');
+    const balance = budget - total;
+    document.getElementById(`${section}Balance`).textContent = balance.toFixed(2);
+  }
+
+  window.setIncome = function() {
+    const amount = parseFloat(document.getElementById('incomeInput').value);
+    if (!isNaN(amount)) {
+      localStorage.setItem(`${currentUser}_income`, amount);
+      localStorage.setItem(`${currentUser}_incomeDate`, new Date().toISOString().split('T')[0]);
+      loadExpenses();
+    }
+  };
+
+  function loadExpenses() {
+    const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
+    const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
+    const filterDate = document.getElementById('filterDate')?.value || '';
+
+    document.getElementById('incomeDisplay').textContent = income;
+    const all = ['grocery', 'online', 'market'].flatMap(section =>
+      JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]')
+    ).filter(i => i.checked);
+
+    let total = 0;
+    const tbody = document.getElementById('expensesTable');
+    tbody.innerHTML = '';
+
+    if (!filterDate || filterDate === incomeDate) {
+      tbody.innerHTML += `<tr><td>${incomeDate}</td><td>Income</td><td>₱${income.toFixed(2)}</td></tr>`;
+    }
+
+    all.forEach(item => {
+      if (!item.date) return;
+      if (!filterDate || filterDate === item.date) {
+        total += parseFloat(item.price) || 0;
+        tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.name}</td><td>₱${parseFloat(item.price).toFixed(2)}</td></tr>`;
+      }
+    });
+
+    document.getElementById('expensesDisplay').textContent = total.toFixed(2);
+    document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
+  }
+});
 </script>
 </body>
 </html>
