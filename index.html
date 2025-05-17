@@ -1,503 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Budget Tracker</title>
-  <style>
-    * { box-sizing: border-box; }
-    body { font-family: Arial, sans-serif; background-color: #ccc; margin: 0; padding: 0; }
-    .login-container, .dashboard, .section { max-width: 500px; margin: 50px auto; padding: 20px; background: #eee; border-radius: 10px; display: none; }
-    .login-container.active, .dashboard.active, .section.active { display: block; }
-    .input-group { margin-bottom: 15px; }
-    .input-group label { display: block; margin-bottom: 5px; }
-    .input-group input { width: 100%; padding: 10px; }
-    .button { padding: 10px 20px; background: #888; color: white; border: none; cursor: pointer; margin-top: 10px; }
-    .button:hover { background: #555; }
-    .icon-container { display: flex; justify-content: space-around; margin-top: 20px; }
-    .icon { text-align: center; cursor: pointer; user-select: none; }
-    .icon:hover { font-weight: bold; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { border: 1px solid #999; padding: 8px; text-align: left; }
-    .hidden { display: none; }
-    #groceryItems > div, #onlineItems > div { margin-bottom: 8px; }
-    #groceryItems input[type="text"], #onlineItems input[type="text"] {
-      width: 60%;
-      padding: 5px;
-      margin-right: 10px;
-    }
-    #groceryItems input[type="number"], #onlineItems input[type="number"] {
-      width: 25%;
-      padding: 5px;
-    }
-  </style>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Maki Web</title>
+    <style>
+        body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
+        .login-container, .container { max-width: 600px; margin: auto; padding: 0px; }
+        .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 100px; text-align: center; }
+        input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 5px; margin: 10px 0; border-radius: 50px; border: 1px solid #ccc; }
+        button { padding: 10px 15px; border: none; background: gray; color: white; border-radius: 10px; cursor: pointer; }
+        button:hover { background: #444; }
+        .dashboard, .page { display: none; }
+        .active { display: block; }
+        .nav-buttons button { margin: 5px; }
+        .section { background: white; padding: 50px; margin-bottom: 20px; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .item input[type="number"] { width: 80px; }
+    </style>
 </head>
 <body>
-  <div class="login-container active" id="loginPage">
-    <h2>Login</h2>
-    <div class="input-group">
-      <label>Username</label>
-      <input type="text" id="username" />
+<div class="login-container" id="loginPage">
+    <div class="login-box">
+        <h1>Maki Web</h1>
+        <input type="text" id="loginUsername" placeholder="Username">
+        <input type="password" id="loginPassword" placeholder="Password">
+        <button onclick="login()">Log In</button>
+        <p id="loginError" style="color:red;"></p>
     </div>
-    <div class="input-group">
-      <label>Password</label>
-      <input type="password" id="password" />
+</div>
+
+<div class="container dashboard" id="dashboard">
+    <div class="nav-buttons">
+        <button onclick="showPage('settingsPage')">⚙️ Settings</button>
+        <button onclick="showPage('expensesPage')">📄 Expenses Report</button>
+        <button onclick="showPage('groceryPage')">🛒 Grocery</button>
+        <button onclick="showPage('onlinePage')">💻 Online</button>
+	<button onclick="showPage('marketPage')">🎏 Market</button>
     </div>
-    <button class="button" onclick="login()">Log In</button>
-  </div>
 
-  <div class="dashboard" id="dashboard">
-    <h2>Welcome, <span id="displayUser"></span>!</h2>
-    <div class="icon-container">
-      <div class="icon" onclick="showSection('settings')">⚙️<br />Settings</div>
-      <div class="icon" onclick="showSection('report')">📄<br />Expenses Report</div>
-      <div class="icon" onclick="showSection('grocery')">🛒<br />Grocery</div>
-      <div class="icon" onclick="showSection('online')">💻<br />Online</div>
-      <div class="icon" onclick="logout()">🚪<br />Logout</div>
+    <div id="settingsPage" class="page section">
+        <h2>Settings</h2>
+        <input type="text" id="newUsername" placeholder="New Username">
+        <input type="password" id="newPassword" placeholder="New Password">
+        <button onclick="addUser()">Add User</button>
+        <input type="text" id="removeUsername" placeholder="Username to Remove">
+        <button onclick="removeUser()">Remove User</button>
     </div>
-  </div>
 
-  <div class="section" id="settings">
-    <h3>Settings</h3>
-    <div class="input-group">
-      <label>New Username</label>
-      <input type="text" id="newUsername" />
+    <div id="expensesPage" class="page section">
+        <h2>Expenses Report</h2>
+        <input type="number" id="incomeInput" placeholder="Set Income" />
+        <button onclick="setIncome()">Update Income</button>
+        <p>Income: ₱<span id="incomeDisplay">0</span></p>
+        <p>Expenses: ₱<span id="expensesDisplay">0</span></p>
+        <p>Balance: ₱<span id="expensesBalance">0</span></p>
+        <label>Filter by Date:</label>
+        <input type="date" id="filterDate" onchange="loadExpenses()" min="2025-01-01" max="4045-12-31" />
+        <table border="1" style="width:100%; margin-top:10px;">
+            <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
+            <tbody id="expensesTable"></tbody>
+        </table>
     </div>
-    <div class="input-group">
-      <label>New Password</label>
-      <input type="password" id="newPassword" />
+
+    <div id="groceryPage" class="page section">
+        <h2>Grocery Budget</h2>
+        <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
+        <button onclick="setBudget('grocery')">Set Budget</button>
+        <p>Budget: ₱<span id="groceryBudget">0</span></p>
+        <p>Balance: ₱<span id="groceryBalance">0</span></p>
+        <input type="text" id="groceryItemName" placeholder="Item Name" />
+        <button onclick="addItem('grocery')">Add Item</button>
+        <div id="groceryItemsList"></div>
     </div>
-    <button class="button" onclick="updateCredentials()">Update</button>
-  </div>
 
-  <div class="section" id="report">
-    <h3>Expenses Report</h3>
-    <div class="input-group">
-      <label>Income</label>
-      <input type="number" id="incomeInput" placeholder="₱" />
+    <div id="onlinePage" class="page section">
+        <h2>Online Budget</h2>
+        <input type="number" id="onlineBudgetInput" placeholder="Set Budget" />
+        <button onclick="setBudget('online')">Set Budget</button>
+        <p>Budget: ₱<span id="onlineBudget">0</span></p>
+        <p>Balance: ₱<span id="onlineBalance">0</span></p>
+        <input type="text" id="onlineItemName" placeholder="Item Name" />
+        <button onclick="addItem('online')">Add Item</button>
+        <div id="onlineItemsList"></div>
     </div>
-    <div class="input-group">
-      <label>Expenses</label>
-      <input type="number" id="expensesInput" placeholder="₱" />
+	
+    <div id="marketPage" class="page section">
+        <h2>Market Budget</h2>
+        <input type="number" id="marketBudgetInput" placeholder="Set Budget" />
+        <button onclick="setBudget('market')">Set Budget</button>
+        <p>Budget: ₱<span id="marketBudget">0</span></p>
+        <p>Balance: ₱<span id="marketBalance">0</span></p>
+        <input type="text" id="marketItemName" placeholder="Item Name" />
+        <button onclick="addItem('market')">Add Item</button>
+        <div id="marketItemsList"></div>
     </div>
-    <button class="button" onclick="updateReport()">Add to Report</button>
-    <button class="button" onclick="savePDF('report')">Save as PDF</button>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Income</th>
-          <th>Expenses</th>
-          <th>Balance</th>
-        </tr>
-      </thead>
-      <tbody id="reportTable"></tbody>
-    </table>
-  </div>
+</div>
 
-  <div class="section" id="grocery">
-    <h3>Grocery</h3>
-    <div class="input-group">
-      <label>Set Grocery Budget</label>
-      <input type="number" id="groceryBudgetInput" placeholder="₱" />
-      <button class="button" onclick="setGroceryBudget()">Set</button>
-    </div>
-    <button class="button" onclick="savePDF('grocery')">Save as PDF</button>
-    <div>Budget: ₱<span id="groceryBudget">0</span> | Balance: ₱<span id="groceryBalance">0</span></div>
-    <div id="groceryItems"></div>
-    <button class="button" onclick="addGroceryItem()">Add Item</button>
-  </div>
+<script>
+    document.addEventListener('DOMContentLoaded', () => {
+        let currentUser = '';
 
-  <div class="section" id="online">
-    <h3>Online</h3>
-    <div class="input-group">
-      <label>Set Online Budget</label>
-      <input type="number" id="onlineBudgetInput" placeholder="₱" />
-      <button class="button" onclick="setOnlineBudget()">Set</button>
-    </div>
-    <button class="button" onclick="savePDF('online')">Save as PDF</button>
-    <div>Budget: ₱<span id="onlineBudget">0</span> | Balance: ₱<span id="onlineBalance">0</span></div>
-    <div id="onlineItems"></div>
-    <button class="button" onclick="addOnlineItem()">Add Item</button>
-  </div>
+        window.login = function() {
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if ((username === 'Tapado' && password === '0000') || (users[username] === password)) {
+                currentUser = username;
+                document.getElementById('loginPage').style.display = 'none';
+                document.getElementById('dashboard').style.display = 'block';
+                loadItems('grocery');
+                loadItems('online');
+		loadItems('market');
+                loadExpenses();
+            } else {
+                document.getElementById('loginError').textContent = 'Invalid credentials';
+            }
+        };
 
-  <!-- Include jsPDF from CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+        window.showPage = function(pageId) {
+            document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+            document.getElementById(pageId).classList.add('active');
+        };
 
-  <script>
-    let currentUser = '';
+        window.addUser = function() {
+            const newUsername = document.getElementById('newUsername').value;
+            const newPassword = document.getElementById('newPassword').value;
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            users[newUsername] = newPassword;
+            localStorage.setItem('users', JSON.stringify(users));
+            alert('User added!');
+        };
 
-    async function savePDF(sectionId) {
-      const { jsPDF } = window.jspdf;
-      const doc = new jsPDF();
+        window.removeUser = function() {
+            const removeUsername = document.getElementById('removeUsername').value;
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            delete users[removeUsername];
+            localStorage.setItem('users', JSON.stringify(users));
+            alert('User removed!');
+        };
 
-      if (!currentUser) {
-        alert('Please login first!');
-        return;
-      }
+        window.setBudget = function(section) {
+            const budgetInput = document.getElementById(`${section}BudgetInput`).value;
+            localStorage.setItem(`${currentUser}_${section}Budget`, budgetInput);
+            localStorage.setItem(`${currentUser}_${section}Items`, '[]');
+            document.getElementById(`${section}Budget`).textContent = budgetInput;
+            loadItems(section);
+        };
 
-      let y = 10;
-      doc.setFontSize(16);
-      doc.text(`Budget Tracker - ${sectionId.charAt(0).toUpperCase() + sectionId.slice(1)}`, 10, y);
-      y += 10;
+        window.addItem = function(section) {
+            const itemNameInput = document.getElementById(`${section}ItemName`);
+            const itemName = itemNameInput.value.trim();
+            if (!itemName) return;
 
-      if (sectionId === 'report') {
-        const report = JSON.parse(localStorage.getItem(currentUser + '_report')) || [];
-        if(report.length === 0) {
-          alert('No report data to save.');
-          return;
+            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+            items.push({ name: itemName, price: 0, checked: false });
+            localStorage.setItem(`${currentUser}_${section}Items`, JSON.stringify(items));
+
+            itemNameInput.value = '';
+            loadItems(section);
+        };
+
+        window.loadItems = function(section) {
+            const list = document.getElementById(`${section}ItemsList`);
+            list.innerHTML = '';
+            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+
+            items.forEach((item, index) => {
+                const div = document.createElement('div');
+                div.className = 'item';
+                div.innerHTML = `
+                    <label><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem('${section}', ${index}, this.checked)" /> ${item.name}</label>
+                    <input type="number" value="${item.price}" ${item.checked ? '' : 'disabled'} onchange="updatePrice('${section}', ${index}, this.value)" />
+                `;
+                list.appendChild(div);
+            });
+
+            document.getElementById(`${section}Budget`).textContent = localStorage.getItem(`${currentUser}_${section}Budget`) || '0';
+            updateSummary(section);
+        };
+
+        window.toggleItem = function(section, index, checked) {
+            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+            items[index].checked = checked;
+            localStorage.setItem(`${currentUser}_${section}Items`, JSON.stringify(items));
+            loadItems(section);
+        };
+
+        window.updatePrice = function(section, index, value) {
+            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+            items[index].price = parseFloat(value) || 0;
+            if (!items[index].date) {
+                items[index].date = new Date().toISOString().split('T')[0];
+            }
+            localStorage.setItem(`${currentUser}_${section}Items`, JSON.stringify(items));
+            updateSummary(section);
+        };
+
+        function updateSummary(section) {
+            const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+            const total = items.filter(i => i.checked).reduce((sum, item) => sum + Number(item.price), 0);
+            const budget = parseFloat(localStorage.getItem(`${currentUser}_${section}Budget`) || '0');
+            const balance = budget - total;
+            document.getElementById(`${section}Balance`).textContent = balance.toFixed(2);
         }
-        doc.setFontSize(12);
-        // Table headers
-        doc.text('Date', 10, y);
-        doc.text('Income', 70, y);
-        doc.text('Expenses', 110, y);
-        doc.text('Balance', 150, y);
-        y += 6;
-        doc.setLineWidth(0.5);
-        doc.line(10, y, 190, y);
-        y += 4;
-        // Table content
-        report.forEach(row => {
-          if(y > 270){ doc.addPage(); y=10; } // Add page if too long
-          doc.text(row.date, 10, y);
-          doc.text('₱' + row.income.toFixed(2), 70, y);
-          doc.text('₱' + row.expenses.toFixed(2), 110, y);
-          doc.text('₱' + row.balance.toFixed(2), 150, y);
-          y += 8;
-        });
-      }
-      else if(sectionId === 'grocery' || sectionId === 'online') {
-        const budget = parseFloat(localStorage.getItem(currentUser + `_${sectionId}Budget`)) || 0;
-        const items = JSON.parse(localStorage.getItem(currentUser + `_${sectionId}Items`)) || [];
 
-        doc.setFontSize(12);
-        doc.text(`Budget: ₱${budget.toFixed(2)}`, 10, y);
-        y += 8;
+        window.setIncome = function() {
+            const amount = parseFloat(document.getElementById('incomeInput').value);
+            if (!isNaN(amount)) {
+                localStorage.setItem(`${currentUser}_income`, amount);
+                localStorage.setItem(`${currentUser}_incomeDate`, new Date().toISOString().split('T')[0]);
+                loadExpenses();
+            }
+        };
 
-        if(items.length === 0){
-          doc.text('No items added.', 10, y);
-        } else {
-          // Headers
-          doc.text('Item Name', 10, y);
-          doc.text('Checked', 90, y);
-          doc.text('Price', 140, y);
-          y += 6;
-          doc.setLineWidth(0.5);
-          doc.line(10, y, 190, y);
-          y += 4;
+        function loadExpenses() {
+            const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
+            const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
+            const filterDate = document.getElementById('filterDate')?.value || '';
 
-          items.forEach(item => {
-            if(y > 270){ doc.addPage(); y=10; }
-            doc.text(item.name, 10, y);
-            doc.text(item.checked ? 'Yes' : 'No', 90, y);
-            doc.text(item.checked ? `₱${parseFloat(item.price).toFixed(2)}` : '₱0.00', 140, y);
-            y += 8;
-          });
+            document.getElementById('incomeDisplay').textContent = income;
+            const grocery = JSON.parse(localStorage.getItem(`${currentUser}_groceryItems`) || '[]');
+            const online = JSON.parse(localStorage.getItem(`${currentUser}_onlineItems`) || '[]');
+	    const market = JSON.parse(localStorage.getItem(`${currentUser}_marketItems`) || '[]');
+            const all = [...grocery, ...online, ...market].filter(i => i.checked);
 
-          // Calculate balance
-          const totalSpent = items.reduce((sum, i) => sum + (i.checked ? parseFloat(i.price) || 0 : 0), 0);
-          const balance = budget - totalSpent;
-          y += 6;
-          doc.text(`Balance: ₱${balance.toFixed(2)}`, 10, y);
+            let total = 0;
+            const tbody = document.getElementById('expensesTable');
+            tbody.innerHTML = '';
+
+            if (!filterDate || filterDate === incomeDate) {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `<td>${incomeDate}</td><td>Income</td><td>₱${income.toFixed(2)}</td>`;
+                tbody.appendChild(tr);
+            }
+
+            all.forEach(item => {
+                if (!item.date) return;
+                if (!filterDate || filterDate === item.date) {
+                    total += parseFloat(item.price) || 0;
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `<td>${item.date}</td><td>${item.name}</td><td>₱${parseFloat(item.price).toFixed(2)}</td>`;
+                    tbody.appendChild(tr);
+                }
+            });
+
+            document.getElementById('expensesDisplay').textContent = total.toFixed(2);
+            document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
         }
-      }
-      else {
-        alert('PDF export not supported for this section.');
-        return;
-      }
-
-      // Save PDF
-  doc.save(`${currentUser}_${sectionId}_budget_report.pdf`);
-}
-
-// Simple login with localStorage
-function login() {
-  const u = document.getElementById('username').value.trim();
-  const p = document.getElementById('password').value.trim();
-
-  if (!u || !p) {
-    alert('Enter username and password.');
-    return;
-  }
-
-  // For demo: user stored as username:password in localStorage
-  const storedPass = localStorage.getItem('user_' + u);
-  if (storedPass === p) {
-    currentUser = u;
-    document.getElementById('displayUser').textContent = u;
-    document.getElementById('loginPage').classList.remove('active');
-    document.getElementById('dashboard').classList.add('active');
-    hideAllSections();
-    loadReportTable();
-    loadGrocery();
-    loadOnline();
-  } else {
-    alert('Invalid credentials or user not found.');
-  }
-}
-
-function logout() {
-  currentUser = '';
-  document.getElementById('loginPage').classList.add('active');
-  document.getElementById('dashboard').classList.remove('active');
-  hideAllSections();
-  clearInputs();
-}
-
-function hideAllSections() {
-  ['settings','report','grocery','online'].forEach(id => {
-    document.getElementById(id).classList.remove('active');
-  });
-}
-
-function showSection(id) {
-  if(!currentUser){
-    alert('Please login first.');
-    return;
-  }
-  hideAllSections();
-  document.getElementById(id).classList.add('active');
-}
-
-function updateCredentials() {
-  const newU = document.getElementById('newUsername').value.trim();
-  const newP = document.getElementById('newPassword').value.trim();
-  if (!newU || !newP) {
-    alert('Enter new username and password.');
-    return;
-  }
-  // Check if new username exists
-  if (localStorage.getItem('user_' + newU) && newU !== currentUser) {
-    alert('Username already exists.');
-    return;
-  }
-  // Migrate data to new username if changing username
-  if(newU !== currentUser) {
-    // Migrate all user data keys
-    for(let key in localStorage){
-      if(key.startsWith(currentUser + '_')){
-        const newKey = key.replace(currentUser + '_', newU + '_');
-        localStorage.setItem(newKey, localStorage.getItem(key));
-        localStorage.removeItem(key);
-      }
-    }
-    // Remove old user password
-    localStorage.removeItem('user_' + currentUser);
-    currentUser = newU;
-  }
-  // Update password
-  localStorage.setItem('user_' + currentUser, newP);
-  alert('Credentials updated.');
-  document.getElementById('displayUser').textContent = currentUser;
-  clearInputs();
-}
-
-function clearInputs() {
-  document.getElementById('username').value = '';
-  document.getElementById('password').value = '';
-  document.getElementById('newUsername').value = '';
-  document.getElementById('newPassword').value = '';
-  document.getElementById('incomeInput').value = '';
-  document.getElementById('expensesInput').value = '';
-  document.getElementById('groceryBudgetInput').value = '';
-  document.getElementById('onlineBudgetInput').value = '';
-}
-
-// REPORT section
-function updateReport() {
-  const income = parseFloat(document.getElementById('incomeInput').value) || 0;
-  const expenses = parseFloat(document.getElementById('expensesInput').value) || 0;
-  if (income === 0 && expenses === 0) {
-    alert('Enter income or expenses.');
-    return;
-  }
-
-  const report = JSON.parse(localStorage.getItem(currentUser + '_report')) || [];
-  const lastBalance = report.length ? report[report.length -1].balance : 0;
-  const newBalance = lastBalance + income - expenses;
-  const date = new Date().toLocaleString();
-
-  report.push({ date, income, expenses, balance: newBalance });
-  localStorage.setItem(currentUser + '_report', JSON.stringify(report));
-  loadReportTable();
-  document.getElementById('incomeInput').value = '';
-  document.getElementById('expensesInput').value = '';
-}
-
-function loadReportTable() {
-  const report = JSON.parse(localStorage.getItem(currentUser + '_report')) || [];
-  const tbody = document.getElementById('reportTable');
-  tbody.innerHTML = '';
-  report.forEach(row => {
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${row.date}</td><td>₱${row.income.toFixed(2)}</td><td>₱${row.expenses.toFixed(2)}</td><td>₱${row.balance.toFixed(2)}</td>`;
-    tbody.appendChild(tr);
-  });
-}
-
-// Grocery section
-function setGroceryBudget() {
-  const budget = parseFloat(document.getElementById('groceryBudgetInput').value);
-  if (isNaN(budget) || budget < 0) {
-    alert('Invalid budget.');
-    return;
-  }
-  localStorage.setItem(currentUser + '_groceryBudget', budget);
-  loadGrocery();
-  document.getElementById('groceryBudgetInput').value = '';
-}
-
-function addGroceryItem() {
-  const items = JSON.parse(localStorage.getItem(currentUser + '_groceryItems')) || [];
-  items.push({name: '', checked: false, price: 0});
-  localStorage.setItem(currentUser + '_groceryItems', JSON.stringify(items));
-  loadGrocery();
-}
-
-function loadGrocery() {
-  const budget = parseFloat(localStorage.getItem(currentUser + '_groceryBudget')) || 0;
-  const items = JSON.parse(localStorage.getItem(currentUser + '_groceryItems')) || [];
-  document.getElementById('groceryBudget').textContent = budget.toFixed(2);
-
-  const container = document.getElementById('groceryItems');
-  container.innerHTML = '';
-  let totalSpent = 0;
-  items.forEach((item, i) => {
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <input type="checkbox" id="groceryChk${i}" ${item.checked ? 'checked' : ''} />
-      <input type="text" id="groceryName${i}" value="${item.name}" placeholder="Item name" />
-      <input type="number" id="groceryPrice${i}" value="${item.price}" step="0.01" placeholder="₱" ${item.checked ? '' : 'disabled'} />
-      <button onclick="removeGroceryItem(${i})">❌</button>
-    `;
-    container.appendChild(div);
-
-    // Add event listeners
-    div.querySelector(`#groceryChk${i}`).addEventListener('change', e => {
-      items[i].checked = e.target.checked;
-      if (e.target.checked) {
-        div.querySelector(`#groceryPrice${i}`).disabled = false;
-        if (!items[i].price) items[i].price = 0;
-      } else {
-        div.querySelector(`#groceryPrice${i}`).disabled = true;
-        items[i].price = 0;
-      }
-      saveGroceryItems(items);
-      loadGrocery();
     });
-    div.querySelector(`#groceryName${i}`).addEventListener('input', e => {
-      items[i].name = e.target.value;
-      saveGroceryItems(items);
-    });
-    div.querySelector(`#groceryPrice${i}`).addEventListener('input', e => {
-      const val = parseFloat(e.target.value);
-      items[i].price = isNaN(val) ? 0 : val;
-      saveGroceryItems(items);
-      loadGrocery();
-    });
-
-    if (item.checked) totalSpent += parseFloat(item.price) || 0;
-  });
-
-  const balance = budget - totalSpent;
-  document.getElementById('groceryBalance').textContent = balance.toFixed(2);
-}
-
-function saveGroceryItems(items) {
-  localStorage.setItem(currentUser + '_groceryItems', JSON.stringify(items));
-}
-
-function removeGroceryItem(index) {
-  const items = JSON.parse(localStorage.getItem(currentUser + '_groceryItems')) || [];
-  items.splice(index, 1);
-  saveGroceryItems(items);
-  loadGrocery();
-}
-
-// Online section (similar to Grocery)
-function setOnlineBudget() {
-  const budget = parseFloat(document.getElementById('onlineBudgetInput').value);
-  if (isNaN(budget) || budget < 0) {
-    alert('Invalid budget.');
-    return;
-  }
-  localStorage.setItem(currentUser + '_onlineBudget', budget);
-  loadOnline();
-  document.getElementById('onlineBudgetInput').value = '';
-}
-
-function addOnlineItem() {
-  const items = JSON.parse(localStorage.getItem(currentUser + '_onlineItems')) || [];
-  items.push({name: '', checked: false, price: 0});
-  localStorage.setItem(currentUser + '_onlineItems', JSON.stringify(items));
-  loadOnline();
-}
-
-function loadOnline() {
-  const budget = parseFloat(localStorage.getItem(currentUser + '_onlineBudget')) || 0;
-  const items = JSON.parse(localStorage.getItem(currentUser + '_onlineItems')) || [];
-  document.getElementById('onlineBudget').textContent = budget.toFixed(2);
-
-  const container = document.getElementById('onlineItems');
-  container.innerHTML = '';
-  let totalSpent = 0;
-  items.forEach((item, i) => {
-    const div = document.createElement('div');
-    div.innerHTML = `
-      <input type="checkbox" id="onlineChk${i}" ${item.checked ? 'checked' : ''} />
-      <input type="text" id="onlineName${i}" value="${item.name}" placeholder="Item name" />
-      <input type="number" id="onlinePrice${i}" value="${item.price}" step="0.01" placeholder="₱" ${item.checked ? '' : 'disabled'} />
-      <button onclick="removeOnlineItem(${i})">❌</button>
-    `;
-    container.appendChild(div);
-
-    // Add event listeners
-    div.querySelector(`#onlineChk${i}`).addEventListener('change', e => {
-      items[i].checked = e.target.checked;
-      if (e.target.checked) {
-        div.querySelector(`#onlinePrice${i}`).disabled = false;
-        if (!items[i].price) items[i].price = 0;
-      } else {
-        div.querySelector(`#onlinePrice${i}`).disabled = true;
-        items[i].price = 0;
-      }
-      saveOnlineItems(items);
-      loadOnline();
-    });
-    div.querySelector(`#onlineName${i}`).addEventListener('input', e => {
-      items[i].name = e.target.value;
-      saveOnlineItems(items);
-    });
-    div.querySelector(`#onlinePrice${i}`).addEventListener('input', e => {
-      const val = parseFloat(e.target.value);
-      items[i].price = isNaN(val) ? 0 : val;
-      saveOnlineItems(items);
-      loadOnline();
-    });
-
-    if (item.checked) totalSpent += parseFloat(item.price) || 0;
-  });
-
-  const balance = budget - totalSpent;
-  document.getElementById('onlineBalance').textContent = balance.toFixed(2);
-}
-
-function saveOnlineItems(items) {
-  localStorage.setItem(currentUser + '_onlineItems', JSON.stringify(items));
-}
-
-function removeOnlineItem(index) {
-  const items = JSON.parse(localStorage.getItem(currentUser + '_onlineItems')) || [];
-  items.splice(index, 1);
-  saveOnlineItems(items);
-  loadOnline();
-}
-
-// On page load, for demo, create a default user if none exists
-window.onload = () => {
-  if(!localStorage.getItem('user_Tapado')){
-    localStorage.setItem('user_Tapado', '0000');
-  }
-}
-</script> </body> </html>
+</script>
+</body>
+</html>
