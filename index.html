@@ -4,11 +4,14 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Maki Web</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <style>
     body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
     .login-container, .container { max-width: 600px; margin: auto; padding: 0px; }
-    .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 100px; text-align: center; }
-    input[type="text"], input[type="password"], input[type="number"], select { width: 100%; padding: 5px; margin: 10px 0; border-radius: 50px; border: 1px solid #ccc; }
+    .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 50px; text-align: center; }
+    input[type="text"], input[type="password"], input[type="number"], select, input[type="date"] {
+      width: 100%; padding: 5px; margin: 10px 0; border-radius: 50px; border: 1px solid #ccc;
+    }
     button { padding: 10px 15px; border: none; background: gray; color: white; border-radius: 10px; cursor: pointer; }
     button:hover { background: #444; }
     .dashboard, .page { display: none; }
@@ -18,11 +21,11 @@
     .item { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
     .item input[type="number"] { width: 80px; }
     .item button { background-color: red; border-radius: 50%; padding: 5px 10px; }
-    footer { text-align: center; padding: 20px; color: #777; margin-top: 30px; }
+    footer { text-align: center; padding: 10px; background: #ddd; position: fixed; bottom: 0; width: 100%; }
+    #signUpContainer { display: none; margin-top: 20px; }
   </style>
 </head>
 <body>
-
 <div class="login-container" id="loginPage">
   <div class="login-box">
     <h1>Maki Web</h1>
@@ -30,6 +33,14 @@
     <input type="password" id="loginPassword" placeholder="Password">
     <button onclick="login()">Log In</button>
     <p id="loginError" style="color:red;"></p>
+    <hr />
+    <button onclick="toggleSignUp()">Sign Up</button>
+
+    <div id="signUpContainer">
+      <input type="text" id="newUsername" placeholder="New Username">
+      <input type="password" id="newPassword" placeholder="New Password">
+      <button onclick="addUser()">Create Account</button>
+    </div>
   </div>
 </div>
 
@@ -43,17 +54,12 @@
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
-  <!-- Settings Page -->
   <div id="settingsPage" class="page section">
     <h2>Settings</h2>
-    <input type="text" id="newUsername" placeholder="New Username">
-    <input type="password" id="newPassword" placeholder="New Password">
-    <button onclick="addUser()">Add User</button>
     <input type="text" id="removeUsername" placeholder="Username to Remove">
     <button onclick="removeUser()">Remove User</button>
   </div>
 
-  <!-- Expenses Page -->
   <div id="expensesPage" class="page section">
     <h2>Expenses Report</h2>
     <input type="number" id="incomeInput" placeholder="Set Income" />
@@ -62,14 +68,14 @@
     <p>Expenses: ₱<span id="expensesDisplay">0</span></p>
     <p>Balance: ₱<span id="expensesBalance">0</span></p>
     <label>Filter by Date:</label>
-    <input type="date" id="filterDate" />
+    <input type="date" id="filterDate" onchange="loadExpenses()" />
+    <button onclick="exportPDF()">📄 Export as PDF</button>
     <table border="1" style="width:100%; margin-top:10px;">
       <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
       <tbody id="expensesTable"></tbody>
     </table>
   </div>
 
-  <!-- Grocery, Online, Market Pages -->
   <div id="groceryPage" class="page section">
     <h2>Grocery Budget</h2>
     <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
@@ -107,171 +113,207 @@
 <footer>© 2025 Budget Tracker</footer>
 
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-  let currentUser = '';
+let currentUser = localStorage.getItem('loggedInUser') || '';
 
-  window.login = function() {
-    const u = document.getElementById('loginUsername').value;
-    const p = document.getElementById('loginPassword').value;
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    if ((u === 'Tapado' && p === '0000') || users[u] === p) {
-      currentUser = u;
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      ['grocery', 'online', 'market'].forEach(loadItems);
-      loadExpenses();
-    } else {
-      document.getElementById('loginError').textContent = 'Invalid credentials';
-    }
-  };
+function initApp() {
+  if (currentUser) {
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    ['grocery', 'online', 'market'].forEach(loadItems);
+    loadExpenses();
+  }
+}
 
-  window.logout = function() {
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('loginPage').style.display = 'block';
+function login() {
+  const u = document.getElementById('loginUsername').value;
+  const p = document.getElementById('loginPassword').value;
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  if ((u === 'Tapado' && p === '0000') || users[u] === p) {
+    currentUser = u;
+    localStorage.setItem('loggedInUser', u);
+    document.getElementById('loginPage').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    ['grocery', 'online', 'market'].forEach(loadItems);
+    loadExpenses();
     document.getElementById('loginUsername').value = '';
     document.getElementById('loginPassword').value = '';
-    document.getElementById('loginError').textContent = '';
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  };
+  } else {
+    document.getElementById('loginError').textContent = 'Invalid credentials';
+  }
+}
 
-  window.showPage = id => {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(id).classList.add('active');
-  };
+function logout() {
+  localStorage.removeItem('loggedInUser');
+  location.reload();
+}
 
-  window.addUser = function() {
-    const u = document.getElementById('newUsername').value;
-    const p = document.getElementById('newPassword').value;
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+function toggleSignUp() {
+  const signUp = document.getElementById('signUpContainer');
+  signUp.style.display = signUp.style.display === 'none' ? 'block' : 'none';
+}
+
+function addUser() {
+  const u = document.getElementById('newUsername').value;
+  const p = document.getElementById('newPassword').value;
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  if (u && p) {
     users[u] = p;
     localStorage.setItem('users', JSON.stringify(users));
     alert('User added!');
-  };
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
+    toggleSignUp();
+  } else {
+    alert("Please fill in both fields.");
+  }
+}
 
-  window.removeUser = function() {
-    const u = document.getElementById('removeUsername').value;
-    const users = JSON.parse(localStorage.getItem('users') || '{}');
-    delete users[u];
-    localStorage.setItem('users', JSON.stringify(users));
-    alert('User removed!');
-  };
+function removeUser() {
+  const u = document.getElementById('removeUsername').value;
+  const users = JSON.parse(localStorage.getItem('users') || '{}');
+  delete users[u];
+  localStorage.setItem('users', JSON.stringify(users));
+  alert('User removed!');
+}
 
-  window.setBudget = section => {
-    const value = document.getElementById(`${section}BudgetInput`).value;
-    localStorage.setItem(`${currentUser}_${section}Budget`, value);
-    document.getElementById(`${section}Budget`).textContent = value;
-    updateSummary(section);
-  };
+function setBudget(section) {
+  const value = document.getElementById(`${section}BudgetInput`).value;
+  localStorage.setItem(`${currentUser}_${section}Budget`, value);
+  document.getElementById(`${section}Budget`).textContent = value;
+  updateSummary(section);
+}
 
-  window.addItem = section => {
-    const input = document.getElementById(`${section}ItemName`);
-    const name = input.value.trim();
-    if (!name) return;
-    const key = `${currentUser}_${section}Items`;
-    const items = JSON.parse(localStorage.getItem(key) || '[]');
-    items.push({ name, price: 0, checked: false });
-    localStorage.setItem(key, JSON.stringify(items));
-    input.value = '';
-    loadItems(section);
-  };
+function addItem(section) {
+  const input = document.getElementById(`${section}ItemName`);
+  const name = input.value.trim();
+  if (!name) return;
+  const key = `${currentUser}_${section}Items`;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  items.push({ name, price: 0, checked: false });
+  localStorage.setItem(key, JSON.stringify(items));
+  input.value = '';
+  loadItems(section);
+}
 
-  window.deleteItem = function(section, index) {
-    const key = `${currentUser}_${section}Items`;
-    const items = JSON.parse(localStorage.getItem(key) || '[]');
-    items.splice(index, 1);
-    localStorage.setItem(key, JSON.stringify(items));
-    loadItems(section);
-  };
+function deleteItem(section, index) {
+  const key = `${currentUser}_${section}Items`;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  items.splice(index, 1);
+  localStorage.setItem(key, JSON.stringify(items));
+  loadItems(section);
+}
 
-  window.loadItems = section => {
-    const key = `${currentUser}_${section}Items`;
-    const items = JSON.parse(localStorage.getItem(key) || '[]');
-    const list = document.getElementById(`${section}ItemsList`);
-    list.innerHTML = '';
+function loadItems(section) {
+  const key = `${currentUser}_${section}Items`;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  const list = document.getElementById(`${section}ItemsList`);
+  list.innerHTML = '';
 
-    items.forEach((item, index) => {
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.innerHTML = `
-        <label><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem('${section}', ${index}, this.checked)" /> ${item.name}</label>
-        <input type="number" value="${item.price}" ${item.checked ? '' : 'disabled'} onchange="updatePrice('${section}', ${index}, this.value)" />
-        <button onclick="deleteItem('${section}', ${index})">🗑️</button>
-      `;
-      list.appendChild(div);
-    });
+  items.forEach((item, index) => {
+    const div = document.createElement('div');
+    div.className = 'item';
+    div.innerHTML = `
+      <label><input type="checkbox" ${item.checked ? 'checked' : ''} onchange="toggleItem('${section}', ${index}, this.checked)" /> ${item.name}</label>
+      <input type="number" value="${item.price}" ${item.checked ? '' : 'disabled'} onchange="updatePrice('${section}', ${index}, this.value)" />
+      <button onclick="deleteItem('${section}', ${index})">🗑️</button>
+    `;
+    list.appendChild(div);
+  });
 
-    document.getElementById(`${section}Budget`).textContent = localStorage.getItem(`${currentUser}_${section}Budget`) || '0';
-    updateSummary(section);
-  };
+  document.getElementById(`${section}Budget`).textContent = localStorage.getItem(`${currentUser}_${section}Budget`) || '0';
+  updateSummary(section);
+}
 
-  window.toggleItem = (section, index, checked) => {
-    const key = `${currentUser}_${section}Items`;
-    const items = JSON.parse(localStorage.getItem(key) || '[]');
-    items[index].checked = checked;
-    localStorage.setItem(key, JSON.stringify(items));
-    loadItems(section);
-  };
+function toggleItem(section, index, checked) {
+  const key = `${currentUser}_${section}Items`;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  items[index].checked = checked;
+  localStorage.setItem(key, JSON.stringify(items));
+  loadItems(section);
+}
 
-  window.updatePrice = (section, index, value) => {
-    const key = `${currentUser}_${section}Items`;
-    const items = JSON.parse(localStorage.getItem(key) || '[]');
-    items[index].price = parseFloat(value) || 0;
-    if (!items[index].date) {
-      items[index].date = new Date().toISOString().split('T')[0];
-    }
-    localStorage.setItem(key, JSON.stringify(items));
-    updateSummary(section);
-  };
+function updatePrice(section, index, value) {
+  const key = `${currentUser}_${section}Items`;
+  const items = JSON.parse(localStorage.getItem(key) || '[]');
+  items[index].price = parseFloat(value) || 0;
+  if (!items[index].date) {
+    items[index].date = new Date().toISOString().split('T')[0];
+  }
+  localStorage.setItem(key, JSON.stringify(items));
+  updateSummary(section);
+}
 
-  function updateSummary(section) {
-    const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
-    const total = items.filter(i => i.checked).reduce((sum, i) => sum + Number(i.price), 0);
-    const budget = parseFloat(localStorage.getItem(`${currentUser}_${section}Budget`) || '0');
-    const balance = budget - total;
-    document.getElementById(`${section}Balance`).textContent = balance.toFixed(2);
+function updateSummary(section) {
+  const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
+  const total = items.filter(i => i.checked).reduce((sum, i) => sum + Number(i.price), 0);
+  const budget = parseFloat(localStorage.getItem(`${currentUser}_${section}Budget`) || '0');
+  const balance = budget - total;
+  document.getElementById(`${section}Balance`).textContent = balance.toFixed(2);
+}
+
+function setIncome() {
+  const amount = parseFloat(document.getElementById('incomeInput').value);
+  if (!isNaN(amount)) {
+    localStorage.setItem(`${currentUser}_income`, amount);
+    localStorage.setItem(`${currentUser}_incomeDate`, new Date().toISOString().split('T')[0]);
+    loadExpenses();
+  }
+}
+
+function loadExpenses() {
+  const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
+  const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
+  const filterDate = document.getElementById('filterDate')?.value || '';
+
+  document.getElementById('incomeDisplay').textContent = income;
+  const all = ['grocery', 'online', 'market'].flatMap(section =>
+    JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]')
+  ).filter(i => i.checked);
+
+  let total = 0;
+  const tbody = document.getElementById('expensesTable');
+  tbody.innerHTML = '';
+
+  if (!filterDate || filterDate === incomeDate) {
+    tbody.innerHTML += `<tr><td>${incomeDate}</td><td>Income</td><td>₱${income.toFixed(2)}</td></tr>`;
   }
 
-  window.setIncome = function() {
-    const amount = parseFloat(document.getElementById('incomeInput').value);
-    if (!isNaN(amount)) {
-      localStorage.setItem(`${currentUser}_income`, amount);
-      localStorage.setItem(`${currentUser}_incomeDate`, new Date().toISOString().split('T')[0]);
-      loadExpenses();
+  all.forEach(item => {
+    if (!item.date) return;
+    if (!filterDate || filterDate === item.date) {
+      total += parseFloat(item.price) || 0;
+      tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.name}</td><td>₱${parseFloat(item.price).toFixed(2)}</td></tr>`;
     }
-  };
+  });
 
-  function loadExpenses() {
-    const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
-    const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
-    const filterDate = document.getElementById('filterDate')?.value || '';
+  document.getElementById('expensesDisplay').textContent = total.toFixed(2);
+  document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
+}
 
-    document.getElementById('incomeDisplay').textContent = income;
-    const all = ['grocery', 'online', 'market'].flatMap(section =>
-      JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]')
-    ).filter(i => i.checked);
+function exportPDF() {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  doc.text("Expenses Report", 10, 10);
+  let y = 20;
 
-    let total = 0;
-    const tbody = document.getElementById('expensesTable');
-    tbody.innerHTML = '';
+  const table = document.querySelector("#expensesTable");
+  const rows = table.querySelectorAll("tr");
+  rows.forEach((row) => {
+    const cols = row.querySelectorAll("td");
+    const text = [...cols].map(col => col.textContent).join(" | ");
+    doc.text(text, 10, y);
+    y += 10;
+  });
 
-    if (!filterDate || filterDate === incomeDate) {
-      tbody.innerHTML += `<tr><td>${incomeDate}</td><td>Income</td><td>₱${income.toFixed(2)}</td></tr>`;
-    }
+  doc.save("expenses_report.pdf");
+}
 
-    all.forEach(item => {
-      if (!item.date) return;
-      if (!filterDate || filterDate === item.date) {
-        total += parseFloat(item.price) || 0;
-        tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.name}</td><td>₱${parseFloat(item.price).toFixed(2)}</td></tr>`;
-      }
-    });
-
-    document.getElementById('expensesDisplay').textContent = total.toFixed(2);
-    document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
-  }
-
-  document.getElementById('filterDate').addEventListener('change', loadExpenses);
-});
+window.onload = initApp;
 </script>
 </body>
 </html>
