@@ -8,7 +8,9 @@
   <style>
     body { font-family: Arial, sans-serif; background-color: #f0f2f5; margin: 0; }
     .login-container, .container { max-width: 600px; margin: auto; padding: 0px; }
-    .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 50px; text-align: center; }
+    .login-box { background: white; padding: 50px; border-radius: 50px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 50px; text-align: center; position: relative; }
+    .signup-container { display: none; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); margin-top: 20px; position: relative; }
+    .close-btn { position: absolute; top: 10px; right: 15px; cursor: pointer; background: none; border: none; font-size: 20px; }
     input[type="text"], input[type="password"], input[type="number"], select, input[type="date"] {
       width: 100%; padding: 5px; margin: 10px 0; border-radius: 50px; border: 1px solid #ccc;
     }
@@ -22,7 +24,6 @@
     .item input[type="number"] { width: 80px; }
     .item button { background-color: red; border-radius: 50%; padding: 5px 10px; }
     footer { text-align: center; padding: 10px; background: #ddd; position: fixed; bottom: 0; width: 100%; }
-    #signUpContainer { display: none; margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -34,13 +35,14 @@
     <button onclick="login()">Log In</button>
     <p id="loginError" style="color:red;"></p>
     <hr />
-    <button onclick="toggleSignUp()">Sign Up</button>
-
-    <div id="signUpContainer">
-      <input type="text" id="newUsername" placeholder="New Username">
-      <input type="password" id="newPassword" placeholder="New Password">
-      <button onclick="addUser()">Create Account</button>
-    </div>
+    <button onclick="document.getElementById('signupContainer').style.display = 'block';">Create Account</button>
+  </div>
+  <div id="signupContainer" class="signup-container">
+    <button class="close-btn" onclick="document.getElementById('signupContainer').style.display='none';">✖</button>
+    <h3>Sign Up</h3>
+    <input type="text" id="newUsername" placeholder="New Username">
+    <input type="password" id="newPassword" placeholder="New Password">
+    <button onclick="addUser()">Sign Up</button>
   </div>
 </div>
 
@@ -53,13 +55,11 @@
     <button onclick="showPage('marketPage')">🧺 Market</button>
     <button onclick="logout()">🚪 Logout</button>
   </div>
-
   <div id="settingsPage" class="page section">
     <h2>Settings</h2>
     <input type="text" id="removeUsername" placeholder="Username to Remove">
     <button onclick="removeUser()">Remove User</button>
   </div>
-
   <div id="expensesPage" class="page section">
     <h2>Expenses Report</h2>
     <input type="number" id="incomeInput" placeholder="Set Income" />
@@ -75,7 +75,6 @@
       <tbody id="expensesTable"></tbody>
     </table>
   </div>
-
   <div id="groceryPage" class="page section">
     <h2>Grocery Budget</h2>
     <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
@@ -86,7 +85,6 @@
     <button onclick="addItem('grocery')">Add Item</button>
     <div id="groceryItemsList"></div>
   </div>
-
   <div id="onlinePage" class="page section">
     <h2>Online Budget</h2>
     <input type="number" id="onlineBudgetInput" placeholder="Set Budget" />
@@ -97,7 +95,6 @@
     <button onclick="addItem('online')">Add Item</button>
     <div id="onlineItemsList"></div>
   </div>
-
   <div id="marketPage" class="page section">
     <h2>Market Budget</h2>
     <input type="number" id="marketBudgetInput" placeholder="Set Budget" />
@@ -123,7 +120,6 @@ function initApp() {
     loadExpenses();
   }
 }
-
 function login() {
   const u = document.getElementById('loginUsername').value;
   const p = document.getElementById('loginPassword').value;
@@ -135,44 +131,27 @@ function login() {
     document.getElementById('dashboard').style.display = 'block';
     ['grocery', 'online', 'market'].forEach(loadItems);
     loadExpenses();
-    document.getElementById('loginUsername').value = '';
-    document.getElementById('loginPassword').value = '';
   } else {
     document.getElementById('loginError').textContent = 'Invalid credentials';
   }
 }
-
 function logout() {
   localStorage.removeItem('loggedInUser');
   location.reload();
 }
-
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.getElementById(id).classList.add('active');
 }
-
-function toggleSignUp() {
-  const signUp = document.getElementById('signUpContainer');
-  signUp.style.display = signUp.style.display === 'none' ? 'block' : 'none';
-}
-
 function addUser() {
   const u = document.getElementById('newUsername').value;
   const p = document.getElementById('newPassword').value;
   const users = JSON.parse(localStorage.getItem('users') || '{}');
-  if (u && p) {
-    users[u] = p;
-    localStorage.setItem('users', JSON.stringify(users));
-    alert('User added!');
-    document.getElementById('newUsername').value = '';
-    document.getElementById('newPassword').value = '';
-    toggleSignUp();
-  } else {
-    alert("Please fill in both fields.");
-  }
+  users[u] = p;
+  localStorage.setItem('users', JSON.stringify(users));
+  alert('User added!');
+  document.getElementById('signupContainer').style.display = 'none';
 }
-
 function removeUser() {
   const u = document.getElementById('removeUsername').value;
   const users = JSON.parse(localStorage.getItem('users') || '{}');
@@ -180,14 +159,12 @@ function removeUser() {
   localStorage.setItem('users', JSON.stringify(users));
   alert('User removed!');
 }
-
 function setBudget(section) {
   const value = document.getElementById(`${section}BudgetInput`).value;
   localStorage.setItem(`${currentUser}_${section}Budget`, value);
   document.getElementById(`${section}Budget`).textContent = value;
   updateSummary(section);
 }
-
 function addItem(section) {
   const input = document.getElementById(`${section}ItemName`);
   const name = input.value.trim();
@@ -199,7 +176,6 @@ function addItem(section) {
   input.value = '';
   loadItems(section);
 }
-
 function deleteItem(section, index) {
   const key = `${currentUser}_${section}Items`;
   const items = JSON.parse(localStorage.getItem(key) || '[]');
@@ -207,13 +183,11 @@ function deleteItem(section, index) {
   localStorage.setItem(key, JSON.stringify(items));
   loadItems(section);
 }
-
 function loadItems(section) {
   const key = `${currentUser}_${section}Items`;
   const items = JSON.parse(localStorage.getItem(key) || '[]');
   const list = document.getElementById(`${section}ItemsList`);
   list.innerHTML = '';
-
   items.forEach((item, index) => {
     const div = document.createElement('div');
     div.className = 'item';
@@ -224,11 +198,9 @@ function loadItems(section) {
     `;
     list.appendChild(div);
   });
-
   document.getElementById(`${section}Budget`).textContent = localStorage.getItem(`${currentUser}_${section}Budget`) || '0';
   updateSummary(section);
 }
-
 function toggleItem(section, index, checked) {
   const key = `${currentUser}_${section}Items`;
   const items = JSON.parse(localStorage.getItem(key) || '[]');
@@ -236,7 +208,6 @@ function toggleItem(section, index, checked) {
   localStorage.setItem(key, JSON.stringify(items));
   loadItems(section);
 }
-
 function updatePrice(section, index, value) {
   const key = `${currentUser}_${section}Items`;
   const items = JSON.parse(localStorage.getItem(key) || '[]');
@@ -247,7 +218,6 @@ function updatePrice(section, index, value) {
   localStorage.setItem(key, JSON.stringify(items));
   updateSummary(section);
 }
-
 function updateSummary(section) {
   const items = JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]');
   const total = items.filter(i => i.checked).reduce((sum, i) => sum + Number(i.price), 0);
@@ -255,7 +225,6 @@ function updateSummary(section) {
   const balance = budget - total;
   document.getElementById(`${section}Balance`).textContent = balance.toFixed(2);
 }
-
 function setIncome() {
   const amount = parseFloat(document.getElementById('incomeInput').value);
   if (!isNaN(amount)) {
@@ -264,25 +233,20 @@ function setIncome() {
     loadExpenses();
   }
 }
-
 function loadExpenses() {
   const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
   const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
   const filterDate = document.getElementById('filterDate')?.value || '';
-
   document.getElementById('incomeDisplay').textContent = income;
   const all = ['grocery', 'online', 'market'].flatMap(section =>
     JSON.parse(localStorage.getItem(`${currentUser}_${section}Items`) || '[]')
   ).filter(i => i.checked);
-
   let total = 0;
   const tbody = document.getElementById('expensesTable');
   tbody.innerHTML = '';
-
   if (!filterDate || filterDate === incomeDate) {
     tbody.innerHTML += `<tr><td>${incomeDate}</td><td>Income</td><td>₱${income.toFixed(2)}</td></tr>`;
   }
-
   all.forEach(item => {
     if (!item.date) return;
     if (!filterDate || filterDate === item.date) {
@@ -290,29 +254,24 @@ function loadExpenses() {
       tbody.innerHTML += `<tr><td>${item.date}</td><td>${item.name}</td><td>₱${parseFloat(item.price).toFixed(2)}</td></tr>`;
     }
   });
-
   document.getElementById('expensesDisplay').textContent = total.toFixed(2);
   document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
 }
-
 function exportPDF() {
   const { jsPDF } = window.jspdf;
   const doc = new jsPDF();
   doc.text("Expenses Report", 10, 10);
   let y = 20;
-
   const table = document.querySelector("#expensesTable");
   const rows = table.querySelectorAll("tr");
-  rows.forEach((row) => {
+  rows.forEach((row, i) => {
     const cols = row.querySelectorAll("td");
     const text = [...cols].map(col => col.textContent).join(" | ");
     doc.text(text, 10, y);
     y += 10;
   });
-
   doc.save("expenses_report.pdf");
 }
-
 window.onload = initApp;
 </script>
 </body>
