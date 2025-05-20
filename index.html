@@ -18,9 +18,11 @@
     .item { display: flex; align-items: center; gap: 10px; margin: 5px 0; }
     .item input[type="number"] { width: 80px; }
     .item button { background-color: red; border-radius: 50%; padding: 5px 10px; }
+    footer { text-align: center; padding: 20px; color: #777; margin-top: 30px; }
   </style>
 </head>
 <body>
+
 <div class="login-container" id="loginPage">
   <div class="login-box">
     <h1>Maki Web</h1>
@@ -41,6 +43,7 @@
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
+  <!-- Settings Page -->
   <div id="settingsPage" class="page section">
     <h2>Settings</h2>
     <input type="text" id="newUsername" placeholder="New Username">
@@ -50,6 +53,7 @@
     <button onclick="removeUser()">Remove User</button>
   </div>
 
+  <!-- Expenses Page -->
   <div id="expensesPage" class="page section">
     <h2>Expenses Report</h2>
     <input type="number" id="incomeInput" placeholder="Set Income" />
@@ -58,13 +62,14 @@
     <p>Expenses: ₱<span id="expensesDisplay">0</span></p>
     <p>Balance: ₱<span id="expensesBalance">0</span></p>
     <label>Filter by Date:</label>
-    <input type="date" id="filterDate" onchange="loadExpenses()" />
+    <input type="date" id="filterDate" />
     <table border="1" style="width:100%; margin-top:10px;">
       <thead><tr><th>Date</th><th>Description</th><th>Amount</th></tr></thead>
       <tbody id="expensesTable"></tbody>
     </table>
   </div>
 
+  <!-- Grocery, Online, Market Pages -->
   <div id="groceryPage" class="page section">
     <h2>Grocery Budget</h2>
     <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
@@ -99,6 +104,8 @@
   </div>
 </div>
 
+<footer>© 2025 Budget Tracker</footer>
+
 <script>
 document.addEventListener('DOMContentLoaded', () => {
   let currentUser = '';
@@ -121,6 +128,9 @@ document.addEventListener('DOMContentLoaded', () => {
   window.logout = function() {
     document.getElementById('dashboard').style.display = 'none';
     document.getElementById('loginPage').style.display = 'block';
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').textContent = '';
     document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   };
 
@@ -200,7 +210,6 @@ document.addEventListener('DOMContentLoaded', () => {
     items[index].checked = checked;
     localStorage.setItem(key, JSON.stringify(items));
     loadItems(section);
-    loadExpenses(); // auto-refresh expenses
   };
 
   window.updatePrice = (section, index, value) => {
@@ -212,7 +221,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     localStorage.setItem(key, JSON.stringify(items));
     updateSummary(section);
-    loadExpenses(); // auto-refresh expenses
   };
 
   function updateSummary(section) {
@@ -232,7 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   };
 
-  window.loadExpenses = function() {
+  function loadExpenses() {
     const income = parseFloat(localStorage.getItem(`${currentUser}_income`) || '0');
     const incomeDate = localStorage.getItem(`${currentUser}_incomeDate`) || '';
     const filterDate = document.getElementById('filterDate')?.value || '';
@@ -260,7 +268,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
     document.getElementById('expensesDisplay').textContent = total.toFixed(2);
     document.getElementById('expensesBalance').textContent = (income - total).toFixed(2);
-  };
+  }
+
+  document.getElementById('filterDate').addEventListener('change', loadExpenses);
 });
 </script>
 </body>
