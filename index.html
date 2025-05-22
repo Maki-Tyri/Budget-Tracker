@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>     
 <html lang="en">
 <head>
@@ -71,7 +72,7 @@
     <button onclick="document.getElementById('signupContainer').style.display = 'block';">Create Account</button>
   </div>
   <div id="signupContainer" class="signup-container" style="display:none;">
-    <button class="close-btn" onclick="document.getElementById('signupContainer').style.display='none';">✖️</button>
+    <button class="close-btn" onclick="document.getElementById('signupContainer').style.display='none';">✖</button>
     <h3>Sign Up</h3>
     <input type="text" id="newUsername" placeholder="New Username" />
     <input type="password" id="newPassword" placeholder="New Password" />
@@ -95,8 +96,7 @@
     <button onclick="removeUser()">Remove User</button>
   </div>
 
-ʀᴀᴇʟ ᵗᵃᵖᵃᵈᵒ ²¹, [23/05/2025 1:36 am]
-<div id="expensesPage" class="page section">
+  <div id="expensesPage" class="page section">
     <h2>Expenses Report</h2>
     <input type="number" id="incomeInput" placeholder="Set Income" />
     <button onclick="setIncome()">Update Income</button>
@@ -153,10 +153,10 @@
 
 <script>
   // User and Data Setup
-  let users = JSON.parse(localStorage.getItem('makiUsers'))  [{username: 'admin', password: '1234'}];
-  let currentUser = localStorage.getItem('makiCurrentUser')  null;
-  let userData = JSON.parse(localStorage.getItem('makiUserData'))  {};
-  let archiveData = JSON.parse(localStorage.getItem('makiArchiveData'))  {};
+  let users = JSON.parse(localStorage.getItem('makiUsers')) || [{username: 'admin', password: '1234'}];
+  let currentUser = localStorage.getItem('makiCurrentUser') || null;
+  let userData = JSON.parse(localStorage.getItem('makiUserData')) || {};
+  let archiveData = JSON.parse(localStorage.getItem('makiArchiveData')) || {};
 
   function saveUsers() {
     localStorage.setItem('makiUsers', JSON.stringify(users));
@@ -193,11 +193,10 @@
     }
   }
 
-ʀᴀᴇʟ ᵗᵃᵖᵃᵈᵒ ²¹, [23/05/2025 1:36 am]
-function addUser() {
+  function addUser() {
     const username = document.getElementById('newUsername').value.trim();
     const password = document.getElementById('newPassword').value.trim();
-    if (!username  !password) return alert('Enter username and password');
+    if (!username || !password) return alert('Enter username and password');
     if (users.some(u => u.username === username)) return alert('Username exists');
     users.push({username, password});
     saveUsers();
@@ -250,14 +249,14 @@ function addUser() {
   function setIncome() {
     const incomeInput = document.getElementById('incomeInput');
     let incomeVal = parseFloat(incomeInput.value);
-    if (isNaN(incomeVal)  incomeVal <= 0) return alert('Income must be positive');
+    if (isNaN(incomeVal) || incomeVal <= 0) return alert('Income must be positive');
 
     const data = getUserData();
 
     // Check total budgets vs new income
     const totalBudgets = Object.values(data.budgets).reduce((a,b) => a + b, 0);
     if (totalBudgets > incomeVal) {
-      return alert(Income must be >= total budgets (${totalBudgets.toFixed(2)}));
+      return alert(`Income must be >= total budgets (${totalBudgets.toFixed(2)})`);
     }
 
     // Archive current data before reset
@@ -295,12 +294,11 @@ function addUser() {
     alert('Income updated, previous data archived and reset.');
   }
 
-ʀᴀᴇʟ ᵗᵃᵖᵃᵈᵒ ²¹, [23/05/2025 1:36 am]
-// Set Budget for a section, check total budget <= income
+  // Set Budget for a section, check total budget <= income
   function setBudget(section) {
     const budgetInput = document.getElementById(section + 'BudgetInput');
     let budgetVal = parseFloat(budgetInput.value);
-    if (isNaN(budgetVal)  budgetVal < 0) return alert('Enter valid budget');
+    if (isNaN(budgetVal) || budgetVal < 0) return alert('Enter valid budget');
 
     const data = getUserData();
 
@@ -345,7 +343,7 @@ function addUser() {
     const data = getUserData();
 
     data.items[section].forEach((item, index) => {
-      const dateValue = item.date  new Date().toISOString().split('T')[0];
+      const dateValue = item.date || new Date().toISOString().split('T')[0];
       const div = document.createElement('div');
       div.className = 'item';
       div.innerHTML = `
@@ -360,12 +358,11 @@ function addUser() {
     });
   }
 
-ʀᴀᴇʟ ᵗᵃᵖᵃᵈᵒ ²¹, [23/05/2025 1:36 am]
-// Update item amount
+  // Update item amount
   function updateItemAmount(section, index, value) {
     const data = getUserData();
     let val = parseFloat(value);
-    if (isNaN(val)  val < 0) val = 0;
+    if (isNaN(val) || val < 0) val = 0;
     data.items[section][index].amount = val;
     saveUserData();
     updateBalance(section);
@@ -458,7 +455,7 @@ function addUser() {
     filteredItems.forEach(item => {
       const tr = document.createElement('tr');
       tr.innerHTML = `
-        <td>${item.date  ''}</td>
+        <td>${item.date || ''}</td>
         <td>${capitalize(item.section)}</td>
         <td>${item.name}</td>
         <td>₱${item.amount.toFixed(2)}</td>
@@ -490,8 +487,7 @@ function addUser() {
       rows.push(row);
     });
 
-ʀᴀᴇʟ ᵗᵃᵖᵃᵈᵒ ²¹, [23/05/2025 1:36 am]
-doc.autoTable({
+    doc.autoTable({
       head: [['Date', 'Section', 'Description', 'Amount']],
       body: rows,
       startY: 30,
