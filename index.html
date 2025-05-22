@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>     
 <html lang="en">
 <head>
@@ -8,6 +7,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.25/jspdf.plugin.autotable.min.js"></script>
   <style>
+    /* Your styles here */
     * { box-sizing: border-box; }
     body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #eef2f7; margin: 0; }
     .login-container, .container { max-width: 600px; margin: auto; padding: 20px; }
@@ -57,6 +57,28 @@
     th, td {
       padding: 8px; text-align: left;
     }
+
+    /* Archive view styles */
+    #archiveContainer {
+      display: none;
+      background: white; padding: 20px; border-radius: 20px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1); margin-top: 20px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+    #archiveContainer h3 {
+      margin-top: 0;
+    }
+    #archiveList {
+      list-style: none;
+      padding-left: 0;
+    }
+    #archiveList li {
+      padding: 8px; border-bottom: 1px solid #ccc; cursor: pointer;
+    }
+    #archiveList li:hover {
+      background-color: #f0f0f0;
+    }
   </style>
 </head>
 <body>
@@ -87,6 +109,7 @@
     <button onclick="showPage('groceryPage')">🛒 Grocery</button>
     <button onclick="showPage('onlinePage')">💻 Online</button>
     <button onclick="showPage('marketPage')">🧺 Market</button>
+    <button onclick="toggleArchive()">🗃️ Archive</button>
     <button onclick="logout()">🚪 Logout</button>
   </div>
 
@@ -147,383 +170,488 @@
     <button onclick="addNewItem('market')">Add Item</button>
     <div id="marketItemsList"></div>
   </div>
+
+  <!-- Archive Container -->
+  <div id="archiveContainer" class="section">
+    <h3>Archived Budgets</h3>
+    <ul id="archiveList"></ul>
+    <button onclick="closeArchive()">Close Archive</button>
+    <div id="archiveDetails"></div>
+  </div>
 </div>
 
-<footer>© 2025 Maki Web</footer>
+<footer>
+  <p>© 2025 Maki Web Budget Tracker</p>
+</footer>
 
 <script>
-  // User and Data Setup
-  let users = JSON.parse(localStorage.getItem('makiUsers')) || [{username: 'admin', password: '1234'}];
-  let currentUser = localStorage.getItem('makiCurrentUser') || null;
-  let userData = JSON.parse(localStorage.getItem('makiUserData')) || {};
-  let archiveData = JSON.parse(localStorage.getItem('makiArchiveData')) || {};
+  // Users DB simulation
+  let users = JSON.parse(localStorage.getItem('users')) || [
+    { username: 'user', password: 'pass' }
+  ];
 
+  let currentUser = null;
+
+  // Load users from localStorage
   function saveUsers() {
-    localStorage.setItem('makiUsers', JSON.stringify(users));
-  }
-  function saveUserData() {
-    if (currentUser) localStorage.setItem('makiUserData', JSON.stringify(userData));
-  }
-  function saveArchive() {
-    localStorage.setItem('makiArchiveData', JSON.stringify(archiveData));
+    localStorage.setItem('users', JSON.stringify(users));
   }
 
-  // Login and Signup
   function login() {
     const username = document.getElementById('loginUsername').value.trim();
     const password = document.getElementById('loginPassword').value.trim();
     const user = users.find(u => u.username === username && u.password === password);
     if (user) {
       currentUser = username;
-      localStorage.setItem('makiCurrentUser', currentUser);
-      if (!userData[currentUser]) {
-        userData[currentUser] = {
-          income: 0,
-          budgets: {grocery: 0, online: 0, market: 0},
-          items: {grocery: [], online: [], market: []},
-          expenses: []
-        };
-        saveUserData();
-      }
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      initDashboard();
+      showPage('expensesPage');
+      loadIncome();
+      loadExpenses();
+      loadBudgets();
+      loadAllItems();
+      clearLoginInputs();
     } else {
-      document.getElementById('loginError').innerText = 'Invalid username or password';
+      document.getElementById('loginError').textContent = 'Invalid username or password';
     }
+  }
+
+  function logout() {
+    currentUser = null;
+    document.getElementById('dashboard').style.display = 'none';
+    document.getElementById('loginPage').style.display = 'block';
   }
 
   function addUser() {
     const username = document.getElementById('newUsername').value.trim();
     const password = document.getElementById('newPassword').value.trim();
-    if (!username || !password) return alert('Enter username and password');
-    if (users.some(u => u.username === username)) return alert('Username exists');
-    users.push({username, password});
+    if (!username || !password) {
+      alert('Please enter a username and password.');
+      return;
+    }
+    if (users.find(u => u.username === username)) {
+      alert('Username already exists.');
+      return;
+    }
+    users.push({ username, password });
     saveUsers();
-    alert('User added');
+    alert('User created! You can now log in.');
     document.getElementById('signupContainer').style.display = 'none';
   }
 
   function removeUser() {
     const username = document.getElementById('removeUsername').value.trim();
-    if (!username) return alert('Enter username to remove');
-    if (username === currentUser) return alert('Cannot remove yourself');
-    const idx = users.findIndex(u => u.username === username);
-    if (idx === -1) return alert('User not found');
-    users.splice(idx, 1);
-    delete userData[username];
-    saveUsers();
-    saveUserData();
-    alert('User removed');
-  }
-
-  function logout() {
-    currentUser = null;
-    localStorage.removeItem('makiCurrentUser');
-    document.getElementById('dashboard').style.display = 'none';
-    document.getElementById('loginPage').style.display = 'block';
-  }
-
-  // Helper to get user data safely
-  function getUserData() {
-    if (!currentUser) return null;
-    if (!userData[currentUser]) {
-      userData[currentUser] = {
-        income: 0,
-        budgets: {grocery: 0, online: 0, market: 0},
-        items: {grocery: [], online: [], market: []},
-        expenses: []
-      };
-      saveUserData();
+    if (!username) {
+      alert('Enter username to remove.');
+      return;
     }
-    return userData[currentUser];
+    if (username === currentUser) {
+      alert('You cannot remove your own account while logged in.');
+      return;
+    }
+    users = users.filter(u => u.username !== username);
+    saveUsers();
+    alert('User removed if existed.');
   }
 
-  // Show Page Tab
-  function showPage(page) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(page).classList.add('active');
+  function clearLoginInputs() {
+    document.getElementById('loginUsername').value = '';
+    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginError').textContent = '';
+    document.getElementById('newUsername').value = '';
+    document.getElementById('newPassword').value = '';
   }
 
-  // Set Income with validation and archive old data, reset budgets/items/expenses
+  // Page navigation
+  function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.style.display = 'none');
+    document.getElementById('archiveContainer').style.display = 'none'; // hide archive if open
+    document.getElementById(pageId).style.display = 'block';
+  }
+
+  // Storage keys helpers
+  function getUserKey(key) {
+    return `${currentUser}_${key}`;
+  }
+
+  // Income & Expenses Handling
   function setIncome() {
     const incomeInput = document.getElementById('incomeInput');
-    let incomeVal = parseFloat(incomeInput.value);
-    if (isNaN(incomeVal) || incomeVal <= 0) return alert('Income must be positive');
-
-    const data = getUserData();
-
-    // Check total budgets vs new income
-    const totalBudgets = Object.values(data.budgets).reduce((a,b) => a + b, 0);
-    if (totalBudgets > incomeVal) {
-      return alert(`Income must be >= total budgets (${totalBudgets.toFixed(2)})`);
+    let income = parseFloat(incomeInput.value);
+    if (isNaN(income) || income < 0) {
+      alert('Please enter a valid positive income.');
+      return;
     }
+    localStorage.setItem(getUserKey('income'), income.toFixed(2));
 
-    // Archive current data before reset
-    const archiveKey = currentUser + '_' + new Date().toISOString();
-    archiveData[archiveKey] = JSON.parse(JSON.stringify(data));
-    saveArchive();
+    // Archive old budgets and expenses before reset
+    archiveCurrentData();
 
-    // Reset data
-    data.income = incomeVal;
-    data.budgets = {grocery: 0, online: 0, market: 0};
-    data.items = {grocery: [], online: [], market: []};
-    data.expenses = [];
-    saveUserData();
+    // Reset all budgets, expenses, and items on new income set
+    resetAllBudgetsAndExpenses();
 
-    // Clear UI inputs and render
-    ['grocery', 'online', 'market'].forEach(section => {
-      document.getElementById(section + 'BudgetInput').value = '';
-      document.getElementById(section + 'NewItemName').value = '';
-    });
-    incomeInput.value = incomeVal.toFixed(2);
-    document.getElementById('incomeDisplay').innerText = incomeVal.toFixed(2);
-    document.getElementById('expensesDisplay').innerText = '0.00';
-    document.getElementById('expensesBalance').innerText = incomeVal.toFixed(2);
-
-    // Reset budgets displays and balances
-    ['grocery', 'online', 'market'].forEach(section => {
-      document.getElementById(section + 'Budget').innerText = '0.00';
-      document.getElementById(section + 'Balance').innerText = '0.00';
-      document.getElementById(section + 'ItemsList').innerHTML = '';
-    });
-
-    // Clear expenses table
-    document.getElementById('expensesTable').innerHTML = '';
-
-    alert('Income updated, previous data archived and reset.');
-  }
-
-  // Set Budget for a section, check total budget <= income
-  function setBudget(section) {
-    const budgetInput = document.getElementById(section + 'BudgetInput');
-    let budgetVal = parseFloat(budgetInput.value);
-    if (isNaN(budgetVal) || budgetVal < 0) return alert('Enter valid budget');
-
-    const data = getUserData();
-
-    // Check total budgets + this new budget <= income
-    let otherBudgetsSum = 0;
-    Object.entries(data.budgets).forEach(([sec, val]) => {
-      if (sec !== section) otherBudgetsSum += val;
-    });
-
-    if (budgetVal + otherBudgetsSum > data.income) {
-      return alert(`Total budgets exceed income (${data.income.toFixed(2)})`);
-    }
-
-    data.budgets[section] = budgetVal;
-    saveUserData();
-
-    document.getElementById(section + 'Budget').innerText = budgetVal.toFixed(2);
-
-    updateBalance(section);
-  }
-
-  // Add new item to section
-  function addNewItem(section) {
-    const input = document.getElementById(section + 'NewItemName');
-    const name = input.value.trim();
-    if (!name) return alert('Enter item name');
-
-    const data = getUserData();
-
-    data.items[section].push({name, amount: 0, date: new Date().toISOString().split('T')[0]});
-    saveUserData();
-
-    input.value = '';
-    renderItems(section);
-    updateBalance(section);
-  }
-
-  // Render items list in a section
-  function renderItems(section) {
-    const container = document.getElementById(section + 'ItemsList');
-    container.innerHTML = '';
-    const data = getUserData();
-
-    data.items[section].forEach((item, index) => {
-      const dateValue = item.date || new Date().toISOString().split('T')[0];
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.innerHTML = `
-        <span>${item.name}</span>
-        <input type="number" min="0" step="0.01" value="${item.amount.toFixed(2)}"
-               onchange="updateItemAmount('${section}', ${index}, this.value)" />
-        <input type="date" value="${dateValue}"
-               onchange="updateItemDate('${section}', ${index}, this.value)" />
-        <button onclick="removeItem('${section}', ${index})" title="Remove Item">×</button>
-      `;
-      container.appendChild(div);
-    });
-  }
-
-  // Update item amount
-  function updateItemAmount(section, index, value) {
-    const data = getUserData();
-    let val = parseFloat(value);
-    if (isNaN(val) || val < 0) val = 0;
-    data.items[section][index].amount = val;
-    saveUserData();
-    updateBalance(section);
+    loadIncome();
+    loadBudgets();
     loadExpenses();
+    loadAllItems();
+    alert('Income updated and all budgets/expenses reset.');
   }
 
-  // Update item date
-  function updateItemDate(section, index, date) {
-    const data = getUserData();
-    data.items[section][index].date = date;
-    saveUserData();
-    loadExpenses();
-  }
-
-  // Remove item
-  function removeItem(section, index) {
-    if (!confirm('Remove this item?')) return;
-    const data = getUserData();
-    data.items[section].splice(index, 1);
-    saveUserData();
-    renderItems(section);
-    updateBalance(section);
-    loadExpenses();
-  }
-
-  // Update balance for a section
-  function updateBalance(section) {
-    const data = getUserData();
-    const budget = data.budgets[section];
-    const totalSpent = data.items[section].reduce((a,b) => a + b.amount, 0);
-    const balance = budget - totalSpent;
-    document.getElementById(section + 'Balance').innerText = balance.toFixed(2);
-
-    updateExpensesSummary();
-  }
-
-  // Update total expenses and balance summary on Expenses page
-  function updateExpensesSummary() {
-    const data = getUserData();
-    let totalExpenses = 0;
-    ['grocery', 'online', 'market'].forEach(section => {
-      totalExpenses += data.items[section].reduce((a,b) => a + b.amount, 0);
-    });
-    const income = data.income;
-    const balance = income - totalExpenses;
-    document.getElementById('expensesDisplay').innerText = totalExpenses.toFixed(2);
-    document.getElementById('expensesBalance').innerText = balance.toFixed(2);
-    document.getElementById('incomeDisplay').innerText = income.toFixed(2);
-  }
-
-  // Load income and budgets on dashboard load
   function loadIncome() {
-    const data = getUserData();
-    document.getElementById('incomeDisplay').innerText = data.income.toFixed(2);
-    document.getElementById('incomeInput').value = data.income ? data.income.toFixed(2) : '';
-  }
-  function loadBudget(section) {
-    const data = getUserData();
-    const budget = data.budgets[section];
-    document.getElementById(section + 'Budget').innerText = budget.toFixed(2);
-    document.getElementById(section + 'BudgetInput').value = budget ? budget.toFixed(2) : '';
+    let income = parseFloat(localStorage.getItem(getUserKey('income'))) || 0;
+    document.getElementById('incomeDisplay').textContent = income.toFixed(2);
+    document.getElementById('incomeInput').value = income > 0 ? income : '';
   }
 
-  // Load all expenses report
-  function loadExpenses() {
-    const data = getUserData();
-    const filterDate = document.getElementById('filterDate').value;
-    const tbody = document.getElementById('expensesTable');
-    tbody.innerHTML = '';
-
-    // Gather all items with section
-    const allItems = [];
+  // Reset all budgets, items, and expenses
+  function resetAllBudgetsAndExpenses() {
     ['grocery', 'online', 'market'].forEach(section => {
-      data.items[section].forEach(item => {
-        allItems.push({
-          date: item.date,
-          section,
-          name: item.name,
-          amount: item.amount
-        });
-      });
+      localStorage.removeItem(getUserKey(`${section}_budget`));
+      localStorage.removeItem(getUserKey(`${section}_items`));
     });
-
-    // Filter by date if set
-    let filteredItems = allItems;
-    if (filterDate) {
-      filteredItems = allItems.filter(item => item.date === filterDate);
-    }
-
-    filteredItems.forEach(item => {
-      const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.date || ''}</td>
-        <td>${capitalize(item.section)}</td>
-        <td>${item.name}</td>
-        <td>₱${item.amount.toFixed(2)}</td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    updateExpensesSummary();
+    localStorage.removeItem(getUserKey('expenses'));
   }
 
-  function capitalize(str) {
-    return str.charAt(0).toUpperCase() + str.slice(1);
+  // Archive current data before reset on new income set
+  function archiveCurrentData() {
+    const income = localStorage.getItem(getUserKey('income'));
+    const expenses = localStorage.getItem(getUserKey('expenses'));
+    const groceryBudget = localStorage.getItem(getUserKey('grocery_budget'));
+    const groceryItems = localStorage.getItem(getUserKey('grocery_items'));
+    const onlineBudget = localStorage.getItem(getUserKey('online_budget'));
+    const onlineItems = localStorage.getItem(getUserKey('online_items'));
+    const marketBudget = localStorage.getItem(getUserKey('market_budget'));
+    const marketItems = localStorage.getItem(getUserKey('market_items'));
+
+    // Get current timestamp for archive key
+    const archiveTimestamp = new Date().toISOString();
+
+    // Prepare archive object
+    const archiveEntry = {
+      timestamp: archiveTimestamp,
+      income: income || "0",
+      expenses: expenses || "[]",
+      grocery_budget: groceryBudget || "0",
+      grocery_items: groceryItems || "[]",
+      online_budget: onlineBudget || "0",
+      online_items: onlineItems || "[]",
+      market_budget: marketBudget || "0",
+      market_items: marketItems || "[]",
+    };
+
+    // Load existing archives
+    let archives = JSON.parse(localStorage.getItem(getUserKey('archives')) || "[]");
+    archives.push(archiveEntry);
+    localStorage.setItem(getUserKey('archives'), JSON.stringify(archives));
+  }
+
+  // Load expenses filtered by date or all
+  function loadExpenses() {
+    let expenses = JSON.parse(localStorage.getItem(getUserKey('expenses')) || "[]");
+    const filterDate = document.getElementById('filterDate').value;
+    if (filterDate) {
+      expenses = expenses.filter(e => e.date === filterDate);
+    }
+    const expensesTable = document.getElementById('expensesTable');
+    expensesTable.innerHTML = '';
+    let totalExpenses = 0;
+
+    expenses.forEach(exp => {
+      const row = document.createElement('tr');
+      row.innerHTML = `
+        <td>${exp.date}</td>
+        <td>${exp.section}</td>
+        <td>${exp.name}</td>
+        <td>₱${parseFloat(exp.amount).toFixed(2)}</td>
+      `;
+      expensesTable.appendChild(row);
+      totalExpenses += parseFloat(exp.amount);
+    });
+
+    const income = parseFloat(localStorage.getItem(getUserKey('income'))) || 0;
+    const balance = income - totalExpenses;
+
+    document.getElementById('expensesDisplay').textContent = totalExpenses.toFixed(2);
+    document.getElementById('expensesBalance').textContent = balance.toFixed(2);
   }
 
   // Export expenses as PDF
   async function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
-    doc.setFontSize(18);
-    doc.text("Expenses Report", 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
 
-    // Prepare data for autotable
-    const rows = [];
-    document.querySelectorAll('#expensesTable tr').forEach(tr => {
-      const row = [];
-      tr.querySelectorAll('td').forEach(td => row.push(td.innerText));
-      rows.push(row);
+    let expenses = JSON.parse(localStorage.getItem(getUserKey('expenses')) || "[]");
+    const filterDate = document.getElementById('filterDate').value;
+    if (filterDate) {
+      expenses = expenses.filter(e => e.date === filterDate);
+    }
+
+    doc.text("Expenses Report", 14, 16);
+
+    const tableColumn = ["Date", "Section", "Description", "Amount"];
+    const tableRows = [];
+
+    expenses.forEach(exp => {
+      const expenseData = [
+        exp.date,
+        exp.section,
+        exp.name,
+        `₱${parseFloat(exp.amount).toFixed(2)}`
+      ];
+      tableRows.push(expenseData);
     });
 
     doc.autoTable({
-      head: [['Date', 'Section', 'Description', 'Amount']],
-      body: rows,
-      startY: 30,
+      head: [tableColumn],
+      body: tableRows,
+      startY: 20,
     });
 
-    doc.save('expenses_report.pdf');
+    const income = parseFloat(localStorage.getItem(getUserKey('income'))) || 0;
+    const totalExpenses = expenses.reduce((a, e) => a + parseFloat(e.amount), 0);
+    const balance = income - totalExpenses;
+
+    doc.text(`Income: ₱${income.toFixed(2)}`, 14, doc.lastAutoTable.finalY + 10);
+    doc.text(`Total Expenses: ₱${totalExpenses.toFixed(2)}`, 14, doc.lastAutoTable.finalY + 16);
+    doc.text(`Balance: ₱${balance.toFixed(2)}`, 14, doc.lastAutoTable.finalY + 22);
+
+    doc.save("expenses_report.pdf");
   }
 
-  // Initialization on dashboard load
-  function initDashboard() {
-    showPage('expensesPage');
+  // Budgets & Items Management
+  function setBudget(section) {
+    const input = document.getElementById(`${section}BudgetInput`);
+    let budgetValue = parseFloat(input.value);
+    if (isNaN(budgetValue) || budgetValue < 0) {
+      alert('Enter a valid budget amount.');
+      return;
+    }
+    const income = parseFloat(localStorage.getItem(getUserKey('income'))) || 0;
 
-    loadIncome();
-    ['grocery', 'online', 'market'].forEach(section => {
-      loadBudget(section);
-      renderItems(section);
-      updateBalance(section);
-    });
-
-    // Set filter date default to today if empty
-    const filterDateInput = document.getElementById('filterDate');
-    if (!filterDateInput.value) {
-      filterDateInput.value = new Date().toISOString().split('T')[0];
+    if (budgetValue > income) {
+      alert('Budget cannot exceed total income.');
+      return;
     }
 
+    localStorage.setItem(getUserKey(`${section}_budget`), budgetValue.toFixed(2));
+    input.value = budgetValue.toFixed(2);
+
+    // Reset section items and expenses if you want:
+    localStorage.removeItem(getUserKey(`${section}_items`));
+    loadBudgetDisplay(section);
+    loadItems(section);
+  }
+
+  function loadBudgets() {
+    ['grocery', 'online', 'market'].forEach(section => loadBudgetDisplay(section));
+  }
+
+  function loadBudgetDisplay(section) {
+    const budget = parseFloat(localStorage.getItem(getUserKey(`${section}_budget`))) || 0;
+    document.getElementById(`${section}Budget`).textContent = budget.toFixed(2);
+    const expenses = getTotalExpensesBySection(section);
+    document.getElementById(`${section}Balance`).textContent = (budget - expenses).toFixed(2);
+  }
+
+  function getTotalExpensesBySection(section) {
+    const expenses = JSON.parse(localStorage.getItem(getUserKey('expenses')) || "[]");
+    return expenses
+      .filter(e => e.section === section)
+      .reduce((sum, e) => sum + parseFloat(e.amount), 0);
+  }
+
+  // Items Management
+  function addNewItem(section) {
+    const input = document.getElementById(`${section}NewItemName`);
+    const itemName = input.value.trim();
+    if (!itemName) {
+      alert('Enter item name.');
+      return;
+    }
+
+    let items = JSON.parse(localStorage.getItem(getUserKey(`${section}_items`)) || "[]");
+    if (items.find(i => i.name.toLowerCase() === itemName.toLowerCase())) {
+      alert('Item already exists.');
+      return;
+    }
+
+    items.push({ name: itemName, amount: 0 });
+    localStorage.setItem(getUserKey(`${section}_items`), JSON.stringify(items));
+    input.value = '';
+    loadItems(section);
+  }
+
+  function loadItems(section) {
+    const container = document.getElementById(`${section}ItemsList`);
+    container.innerHTML = '';
+    let items = JSON.parse(localStorage.getItem(getUserKey(`${section}_items`)) || "[]");
+    const budget = parseFloat(localStorage.getItem(getUserKey(`${section}_budget`))) || 0;
+
+    items.forEach((item, index) => {
+      const div = document.createElement('div');
+      div.classList.add('item');
+      div.innerHTML = `
+        <input type="text" readonly value="${item.name}" />
+        <input type="number" min="0" step="0.01" value="${item.amount}" onchange="updateItemAmount('${section}', ${index}, this.value)" />
+        <button onclick="deleteItem('${section}', ${index})">x</button>
+      `;
+      container.appendChild(div);
+    });
+
+    // Update balance for section
+    updateSectionBalance(section);
+  }
+
+  function updateItemAmount(section, index, value) {
+    let items = JSON.parse(localStorage.getItem(getUserKey(`${section}_items`)) || "[]");
+    const budget = parseFloat(localStorage.getItem(getUserKey(`${section}_budget`))) || 0;
+
+    let amount = parseFloat(value);
+    if (isNaN(amount) || amount < 0) {
+      alert('Invalid amount.');
+      loadItems(section);
+      return;
+    }
+
+    // Check total sum of item amounts <= budget
+    let total = items.reduce((sum, i, idx) => sum + (idx === index ? amount : parseFloat(i.amount)), 0);
+    if (total > budget) {
+      alert('Total item amounts cannot exceed budget.');
+      loadItems(section);
+      return;
+    }
+
+    items[index].amount = amount.toFixed(2);
+    localStorage.setItem(getUserKey(`${section}_items`), JSON.stringify(items));
+
+    // Add/update expense record for this item and section
+    addOrUpdateExpense(section, items[index].name, amount);
+
+    updateSectionBalance(section);
+  }
+
+  function deleteItem(section, index) {
+    let items = JSON.parse(localStorage.getItem(getUserKey(`${section}_items`)) || "[]");
+    const itemName = items[index].name;
+    items.splice(index, 1);
+    localStorage.setItem(getUserKey(`${section}_items`), JSON.stringify(items));
+
+    // Remove expense for this item
+    removeExpenseByNameAndSection(itemName, section);
+
+    loadItems(section);
+    updateSectionBalance(section);
+  }
+
+  function addOrUpdateExpense(section, name, amount) {
+    let expenses = JSON.parse(localStorage.getItem(getUserKey('expenses')) || "[]");
+    const today = new Date().toISOString().slice(0, 10);
+
+    // Check if expense with same name and section and today's date exists, update if yes
+    let expenseIndex = expenses.findIndex(e => e.name === name && e.section === section && e.date === today);
+
+    if (amount === 0) {
+      // Remove if amount is 0
+      if (expenseIndex >= 0) expenses.splice(expenseIndex, 1);
+    } else {
+      if (expenseIndex >= 0) {
+        expenses[expenseIndex].amount = amount.toFixed(2);
+      } else {
+        expenses.push({ date: today, section, name, amount: amount.toFixed(2) });
+      }
+    }
+
+    localStorage.setItem(getUserKey('expenses'), JSON.stringify(expenses));
     loadExpenses();
   }
 
-  // On page load, check if logged in
-  window.onload = () => {
-    if (currentUser) {
-      document.getElementById('loginPage').style.display = 'none';
-      document.getElementById('dashboard').style.display = 'block';
-      initDashboard();
+  function removeExpenseByNameAndSection(name, section) {
+    let expenses = JSON.parse(localStorage.getItem(getUserKey('expenses')) || "[]");
+    expenses = expenses.filter(e => !(e.name === name && e.section === section));
+    localStorage.setItem(getUserKey('expenses'), JSON.stringify(expenses));
+    loadExpenses();
+  }
+
+  // Load all items for all sections
+  function loadAllItems() {
+    ['grocery', 'online', 'market'].forEach(section => loadItems(section));
+  }
+
+  function updateSectionBalance(section) {
+    const budget = parseFloat(localStorage.getItem(getUserKey(`${section}_budget`))) || 0;
+    const items = JSON.parse(localStorage.getItem(getUserKey(`${section}_items`)) || "[]");
+    const totalSpent = items.reduce((sum, i) => sum + parseFloat(i.amount), 0);
+    document.getElementById(`${section}Balance`).textContent = (budget - totalSpent).toFixed(2);
+  }
+
+  // Archive toggle and view
+  function toggleArchive() {
+    const archiveDiv = document.getElementById('archiveContainer');
+    if (archiveDiv.style.display === 'block') {
+      archiveDiv.style.display = 'none';
+    } else {
+      archiveDiv.style.display = 'block';
+      showPage(''); // Hide other pages
+      loadArchiveList();
     }
-  };
+  }
+
+  function closeArchive() {
+    document.getElementById('archiveContainer').style.display = 'none';
+    showPage('expensesPage');
+  }
+
+  function loadArchiveList() {
+    const archiveList = document.getElementById('archiveList');
+    archiveList.innerHTML = '';
+    const archives = JSON.parse(localStorage.getItem(getUserKey('archives')) || "[]");
+    if (archives.length === 0) {
+      archiveList.innerHTML = '<li>No archived budgets found.</li>';
+      return;
+    }
+    archives.forEach((archive, index) => {
+      const li = document.createElement('li');
+      li.textContent = new Date(archive.timestamp).toLocaleString();
+      li.onclick = () => showArchiveDetails(index);
+      archiveList.appendChild(li);
+    });
+  }
+
+  function showArchiveDetails(index) {
+    const archives = JSON.parse(localStorage.getItem(getUserKey('archives')) || "[]");
+    if (index < 0 || index >= archives.length) return;
+    const archive = archives[index];
+    const container = document.getElementById('archiveDetails');
+
+    // Parse expenses to readable table
+    const expenses = JSON.parse(archive.expenses || '[]');
+    let expensesHTML = '<table><thead><tr><th>Date</th><th>Section</th><th>Description</th><th>Amount</th></tr></thead><tbody>';
+    expenses.forEach(e => {
+      expensesHTML += `<tr><td>${e.date}</td><td>${e.section}</td><td>${e.name}</td><td>₱${parseFloat(e.amount).toFixed(2)}</td></tr>`;
+    });
+    expensesHTML += '</tbody></table>';
+
+    container.innerHTML = `
+      <h4>Archived on: ${new Date(archive.timestamp).toLocaleString()}</h4>
+      <p><strong>Income:</strong> ₱${parseFloat(archive.income).toFixed(2)}</p>
+      <h5>Expenses:</h5>
+      ${expensesHTML}
+      <h5>Budgets:</h5>
+      <ul>
+        <li>Grocery: ₱${parseFloat(archive.grocery_budget).toFixed(2)}</li>
+        <li>Online: ₱${parseFloat(archive.online_budget).toFixed(2)}</li>
+        <li>Market: ₱${parseFloat(archive.market_budget).toFixed(2)}</li>
+      </ul>
+      <h5>Items:</h5>
+      <ul>
+        <li>Grocery Items: ${JSON.parse(archive.grocery_items || '[]').map(i => i.name).join(', ') || 'None'}</li>
+        <li>Online Items: ${JSON.parse(archive.online_items || '[]').map(i => i.name).join(', ') || 'None'}</li>
+        <li>Market Items: ${JSON.parse(archive.market_items || '[]').map(i => i.name).join(', ') || 'None'}</li>
+      </ul>
+    `;
+  }
+
 </script>
+
 </body>
 </html>
