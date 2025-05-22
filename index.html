@@ -1,5 +1,4 @@
-
-<!DOCTYPE html>     
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
@@ -50,6 +49,7 @@
     }
     table {
       border-collapse: collapse; 
+      width: 100%;
     }
     table, th, td {
       border: 1px solid #ccc;
@@ -106,13 +106,12 @@
     <label>Filter by Date:</label>
     <input type="date" id="filterDate" onchange="loadExpenses()" />
     <button onclick="exportPDF()">📄 Export as PDF</button>
-    <table style="width:100%; margin-top:10px;">
+    <table>
       <thead><tr><th>Date</th><th>Section</th><th>Description</th><th>Amount</th></tr></thead>
       <tbody id="expensesTable"></tbody>
     </table>
   </div>
 
-  <!-- Grocery Page -->
   <div id="groceryPage" class="page section">
     <h2>Grocery Budget</h2>
     <input type="number" id="groceryBudgetInput" placeholder="Set Budget" />
@@ -124,7 +123,6 @@
     <div id="groceryItemsList"></div>
   </div>
 
-  <!-- Online Page -->
   <div id="onlinePage" class="page section">
     <h2>Online Budget</h2>
     <input type="number" id="onlineBudgetInput" placeholder="Set Budget" />
@@ -136,7 +134,6 @@
     <div id="onlineItemsList"></div>
   </div>
 
-  <!-- Market Page -->
   <div id="marketPage" class="page section">
     <h2>Market Budget</h2>
     <input type="number" id="marketBudgetInput" placeholder="Set Budget" />
@@ -164,57 +161,47 @@
   function saveUserData() {
     if (currentUser) localStorage.setItem('makiUserData', JSON.stringify(userData));
   }
-  function saveArchive() {
+  function saveArchiveData() {
     localStorage.setItem('makiArchiveData', JSON.stringify(archiveData));
   }
 
-  // Login and Signup
+  // Show/hide pages
+  function showPage(pageId) {
+    const pages = document.querySelectorAll('.page');
+    pages.forEach(p => p.style.display = 'none');
+    document.getElementById(pageId).style.display = 'block';
+    if (pageId === 'expensesPage') loadExpenses();
+    if (pageId === 'groceryPage') renderItems('grocery');
+    if (pageId === 'onlinePage') renderItems('online');
+    if (pageId === 'marketPage') renderItems('market');
+  }
+
+  // Login flow
   function login() {
     const username = document.getElementById('loginUsername').value.trim();
-    const password = document.getElementById('loginPassword').value.trim();
+    const password = document.getElementById('loginPassword').value;
+    const err = document.getElementById('loginError');
     const user = users.find(u => u.username === username && u.password === password);
     if (user) {
       currentUser = username;
-      localStorage.setItem('makiCurrentUser', currentUser);
+      localStorage.setItem('makiCurrentUser', username);
       if (!userData[currentUser]) {
         userData[currentUser] = {
           income: 0,
-          budgets: {grocery: 0, online: 0, market: 0},
-          items: {grocery: [], online: [], market: []},
-          expenses: []
+          expenses: [],
+          budget: { grocery: 0, online: 0, market: 0 },
+          items: { grocery: [], online: [], market: [] }
         };
         saveUserData();
       }
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      initDashboard();
+      showPage('expensesPage');
+      err.textContent = '';
+      loadUserData();
     } else {
-      document.getElementById('loginError').innerText = 'Invalid username or password';
+      err.textContent = 'Invalid username or password.';
     }
-  }
-
-  function addUser() {
-    const username = document.getElementById('newUsername').value.trim();
-    const password = document.getElementById('newPassword').value.trim();
-    if (!username || !password) return alert('Enter username and password');
-    if (users.some(u => u.username === username)) return alert('Username exists');
-    users.push({username, password});
-    saveUsers();
-    alert('User added');
-    document.getElementById('signupContainer').style.display = 'none';
-  }
-
-  function removeUser() {
-    const username = document.getElementById('removeUsername').value.trim();
-    if (!username) return alert('Enter username to remove');
-    if (username === currentUser) return alert('Cannot remove yourself');
-    const idx = users.findIndex(u => u.username === username);
-    if (idx === -1) return alert('User not found');
-    users.splice(idx, 1);
-    delete userData[username];
-    saveUsers();
-    saveUserData();
-    alert('User removed');
   }
 
   function logout() {
@@ -224,296 +211,291 @@
     document.getElementById('loginPage').style.display = 'block';
   }
 
-  // Helper to get user data safely
-  function getUserData() {
-    if (!currentUser) return null;
-    if (!userData[currentUser]) {
-      userData[currentUser] = {
-        income: 0,
-        budgets: {grocery: 0, online: 0, market: 0},
-        items: {grocery: [], online: [], market: []},
-        expenses: []
-      };
-      saveUserData();
-    }
-    return userData[currentUser];
+  // Sign up
+  function addUser() {
+    const newUsername = document.getElementById('newUsername').value.trim();
+    const newPassword = document.getElementById('newPassword').value;
+    if (!newUsername || !newPassword) return alert('Please enter username and password.');
+    if (users.find(u => u.username === newUsername)) return alert('Username already exists.');
+    users.push({username: newUsername, password: newPassword});
+    saveUsers();
+    alert('User created. Please log in.');
+    document.getElementById('signupContainer').style.display = 'none';
   }
 
-  // Show Page Tab
-  function showPage(page) {
-    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-    document.getElementById(page).classList.add('active');
+  // Remove User (Settings)
+  function removeUser() {
+    const removeUsername = document.getElementById('removeUsername').value.trim();
+    if (!removeUsername) return alert('Enter username to remove');
+    if (removeUsername === currentUser) return alert('You cannot remove yourself.');
+    const index = users.findIndex(u => u.username === removeUsername);
+    if (index < 0) return alert('User not found');
+    users.splice(index, 1);
+    delete userData[removeUsername];
+    saveUsers();
+    saveUserData();
+    alert('User removed.');
   }
 
-  // Set Income with validation and archive old data, reset budgets/items/expenses
+  // Load user data to UI
+  function loadUserData() {
+    const data = userData[currentUser];
+    if (!data) return;
+    document.getElementById('incomeDisplay').textContent = data.income.toFixed(2);
+    document.getElementById('expensesDisplay').textContent = calculateTotalExpenses().toFixed(2);
+    document.getElementById('expensesBalance').textContent = (data.income - calculateTotalExpenses()).toFixed(2);
+
+    ['grocery', 'online', 'market'].forEach(section => {
+      document.getElementById(section + 'Budget').textContent = data.budget[section].toFixed(2);
+      document.getElementById(section + 'Balance').textContent = (data.budget[section] - calculateSectionExpenses(section)).toFixed(2);
+    });
+  }
+
+  // Calculate total expenses
+  function calculateTotalExpenses() {
+    const data = userData[currentUser];
+    if (!data) return 0;
+    return data.expenses.reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  // Calculate expenses per section
+  function calculateSectionExpenses(section) {
+    const data = userData[currentUser];
+    if (!data) return 0;
+    return data.expenses.filter(e => e.section === section).reduce((sum, e) => sum + e.amount, 0);
+  }
+
+  // Set income (resets budgets & archives old data)
   function setIncome() {
-    const incomeInput = document.getElementById('incomeInput');
-    let incomeVal = parseFloat(incomeInput.value);
-    if (isNaN(incomeVal) || incomeVal <= 0) return alert('Income must be positive');
-
-    const data = getUserData();
-
-    // Check total budgets vs new income
-    const totalBudgets = Object.values(data.budgets).reduce((a,b) => a + b, 0);
-    if (totalBudgets > incomeVal) {
-      return alert(`Income must be >= total budgets (${totalBudgets.toFixed(2)})`);
+    const newIncomeRaw = document.getElementById('incomeInput').value;
+    const newIncome = parseFloat(newIncomeRaw);
+    if (isNaN(newIncome) || newIncome < 0) {
+      alert('Enter valid income.');
+      return;
     }
-
-    // Archive current data before reset
-    const archiveKey = currentUser + '_' + new Date().toISOString();
-    archiveData[archiveKey] = JSON.parse(JSON.stringify(data));
-    saveArchive();
-
-    // Reset data
-    data.income = incomeVal;
-    data.budgets = {grocery: 0, online: 0, market: 0};
-    data.items = {grocery: [], online: [], market: []};
-    data.expenses = [];
+    if (!userData[currentUser]) userData[currentUser] = {};
+    // Archive old data if any
+    if (userData[currentUser].income > 0) {
+      archiveUserData();
+    }
+    // Reset budgets, expenses, items
+    userData[currentUser] = {
+      income: newIncome,
+      expenses: [],
+      budget: { grocery: 0, online: 0, market: 0 },
+      items: { grocery: [], online: [], market: [] }
+    };
     saveUserData();
-
-    // Clear UI inputs and render
-    ['grocery', 'online', 'market'].forEach(section => {
-      document.getElementById(section + 'BudgetInput').value = '';
-      document.getElementById(section + 'NewItemName').value = '';
-    });
-    incomeInput.value = incomeVal.toFixed(2);
-    document.getElementById('incomeDisplay').innerText = incomeVal.toFixed(2);
-    document.getElementById('expensesDisplay').innerText = '0.00';
-    document.getElementById('expensesBalance').innerText = incomeVal.toFixed(2);
-
-    // Reset budgets displays and balances
-    ['grocery', 'online', 'market'].forEach(section => {
-      document.getElementById(section + 'Budget').innerText = '0.00';
-      document.getElementById(section + 'Balance').innerText = '0.00';
-      document.getElementById(section + 'ItemsList').innerHTML = '';
-    });
-
-    // Clear expenses table
-    document.getElementById('expensesTable').innerHTML = '';
-
-    alert('Income updated, previous data archived and reset.');
+    loadUserData();
+    alert('Income set and all budgets/expenses reset.');
+    document.getElementById('incomeInput').value = '';
+    showPage('expensesPage');
   }
 
-  // Set Budget for a section, check total budget <= income
+  // Archive current user data on income reset
+  function archiveUserData() {
+    if (!archiveData[currentUser]) archiveData[currentUser] = [];
+    // Save current snapshot with timestamp
+    archiveData[currentUser].push({
+      timestamp: new Date().toISOString(),
+      data: JSON.parse(JSON.stringify(userData[currentUser]))
+    });
+    saveArchiveData();
+  }
+
+  // Set budgets
   function setBudget(section) {
-    const budgetInput = document.getElementById(section + 'BudgetInput');
-    let budgetVal = parseFloat(budgetInput.value);
-    if (isNaN(budgetVal) || budgetVal < 0) return alert('Enter valid budget');
+    const inputId = section + 'BudgetInput';
+    const budgetInput = document.getElementById(inputId);
+    let budget = parseFloat(budgetInput.value);
+    if (isNaN(budget) || budget < 0) {
+      alert('Enter valid budget amount.');
+      return;
+    }
+    const data = userData[currentUser];
+    if (!data) return;
 
-    const data = getUserData();
-
-    // Check total budgets + this new budget <= income
-    let otherBudgetsSum = 0;
-    Object.entries(data.budgets).forEach(([sec, val]) => {
-      if (sec !== section) otherBudgetsSum += val;
-    });
-
-    if (budgetVal + otherBudgetsSum > data.income) {
-      return alert(`Total budgets exceed income (${data.income.toFixed(2)})`);
+    // Ensure total budgets do not exceed income
+    let currentTotalBudgets = Object.values(data.budget).reduce((a,b) => a+b, 0);
+    let currentSectionBudget = data.budget[section] || 0;
+    let newTotalBudgets = currentTotalBudgets - currentSectionBudget + budget;
+    if (newTotalBudgets > data.income) {
+      alert(`Total budgets (${newTotalBudgets.toFixed(2)}) exceed income (${data.income.toFixed(2)}).`);
+      return;
     }
 
-    data.budgets[section] = budgetVal;
+    data.budget[section] = budget;
     saveUserData();
-
-    document.getElementById(section + 'Budget').innerText = budgetVal.toFixed(2);
-
-    updateBalance(section);
-  }
-
-  // Add new item to section
-  function addNewItem(section) {
-    const input = document.getElementById(section + 'NewItemName');
-    const name = input.value.trim();
-    if (!name) return alert('Enter item name');
-
-    const data = getUserData();
-
-    data.items[section].push({name, amount: 0, date: new Date().toISOString().split('T')[0]});
-    saveUserData();
-
-    input.value = '';
+    loadUserData();
+    budgetInput.value = '';
     renderItems(section);
-    updateBalance(section);
   }
 
-  // Render items list in a section
+  // Add new item for a section
+  function addNewItem(section) {
+    const inputId = section + 'NewItemName';
+    const newItemInput = document.getElementById(inputId);
+    const name = newItemInput.value.trim();
+    if (!name) return alert('Enter item name');
+    const data = userData[currentUser];
+    if (!data) return;
+
+    // Check for duplicates
+    if (data.items[section].some(i => i.name.toLowerCase() === name.toLowerCase())) {
+      alert('Item with that name already exists.');
+      return;
+    }
+    data.items[section].push({ name, amount: 0, date: '' });
+    saveUserData();
+    renderItems(section);
+    newItemInput.value = '';
+  }
+
+  // Render items for a section with inputs for amount and date, plus remove button
   function renderItems(section) {
-    const container = document.getElementById(section + 'ItemsList');
+    const data = userData[currentUser];
+    if (!data) return;
+    const containerId = section + 'ItemsList';
+    const container = document.getElementById(containerId);
     container.innerHTML = '';
-    const data = getUserData();
 
     data.items[section].forEach((item, index) => {
-      const dateValue = item.date || new Date().toISOString().split('T')[0];
-      const div = document.createElement('div');
-      div.className = 'item';
-      div.innerHTML = `
-        <span>${item.name}</span>
-        <input type="number" min="0" step="0.01" value="${item.amount.toFixed(2)}"
-               onchange="updateItemAmount('${section}', ${index}, this.value)" />
-        <input type="date" value="${dateValue}"
-               onchange="updateItemDate('${section}', ${index}, this.value)" />
-        <button onclick="removeItem('${section}', ${index})" title="Remove Item">×</button>
-      `;
-      container.appendChild(div);
+      const itemDiv = document.createElement('div');
+      itemDiv.className = 'item';
+
+      const nameSpan = document.createElement('span');
+      nameSpan.textContent = item.name;
+      nameSpan.style.minWidth = '100px';
+
+      const amountInput = document.createElement('input');
+      amountInput.type = 'number';
+      amountInput.min = 0;
+      amountInput.step = 0.01;
+      amountInput.placeholder = 'Amount';
+      amountInput.value = item.amount || '';
+      amountInput.onchange = () => {
+        let val = parseFloat(amountInput.value);
+        if (isNaN(val) || val < 0) val = 0;
+        // Validate total expenses + this change <= budget
+        const oldAmount = item.amount || 0;
+        const totalExp = calculateSectionExpenses(section) - oldAmount + val;
+        if (totalExp > data.budget[section]) {
+          alert(`Total expenses in ${section} exceed the budget.`);
+          amountInput.value = oldAmount.toFixed(2);
+          return;
+        }
+        item.amount = val;
+        // Add to overall expenses list with section and date
+        updateExpensesFromItems(section);
+        saveUserData();
+        loadUserData();
+        loadExpenses();
+      };
+
+      const dateInput = document.createElement('input');
+      dateInput.type = 'date';
+      dateInput.value = item.date || '';
+      dateInput.onchange = () => {
+        item.date = dateInput.value;
+        updateExpensesFromItems(section);
+        saveUserData();
+        loadExpenses();
+      };
+
+      const removeBtn = document.createElement('button');
+      removeBtn.textContent = 'x';
+      removeBtn.title = 'Remove item';
+      removeBtn.onclick = () => {
+        data.items[section].splice(index, 1);
+        updateExpensesFromItems(section);
+        saveUserData();
+        renderItems(section);
+        loadUserData();
+        loadExpenses();
+      };
+
+      itemDiv.appendChild(nameSpan);
+      itemDiv.appendChild(amountInput);
+      itemDiv.appendChild(dateInput);
+      itemDiv.appendChild(removeBtn);
+      container.appendChild(itemDiv);
     });
   }
 
-  // Update item amount
-  function updateItemAmount(section, index, value) {
-    const data = getUserData();
-    let val = parseFloat(value);
-    if (isNaN(val) || val < 0) val = 0;
-    data.items[section][index].amount = val;
-    saveUserData();
-    updateBalance(section);
-    loadExpenses();
-  }
-
-  // Update item date
-  function updateItemDate(section, index, date) {
-    const data = getUserData();
-    data.items[section][index].date = date;
-    saveUserData();
-    loadExpenses();
-  }
-
-  // Remove item
-  function removeItem(section, index) {
-    if (!confirm('Remove this item?')) return;
-    const data = getUserData();
-    data.items[section].splice(index, 1);
-    saveUserData();
-    renderItems(section);
-    updateBalance(section);
-    loadExpenses();
-  }
-
-  // Update balance for a section
-  function updateBalance(section) {
-    const data = getUserData();
-    const budget = data.budgets[section];
-    const totalSpent = data.items[section].reduce((a,b) => a + b.amount, 0);
-    const balance = budget - totalSpent;
-    document.getElementById(section + 'Balance').innerText = balance.toFixed(2);
-
-    updateExpensesSummary();
-  }
-
-  // Update total expenses and balance summary on Expenses page
-  function updateExpensesSummary() {
-    const data = getUserData();
-    let totalExpenses = 0;
-    ['grocery', 'online', 'market'].forEach(section => {
-      totalExpenses += data.items[section].reduce((a,b) => a + b.amount, 0);
+  // Sync items to expenses array to keep all expenses for reports
+  function updateExpensesFromItems(section) {
+    const data = userData[currentUser];
+    if (!data) return;
+    // Remove all expenses from this section first
+    data.expenses = data.expenses.filter(e => e.section !== section);
+    // Add items from section as expenses
+    data.items[section].forEach(item => {
+      if (item.amount > 0) {
+        data.expenses.push({
+          section: section,
+          description: item.name,
+          amount: item.amount,
+          date: item.date || new Date().toISOString().slice(0,10)
+        });
+      }
     });
-    const income = data.income;
-    const balance = income - totalExpenses;
-    document.getElementById('expensesDisplay').innerText = totalExpenses.toFixed(2);
-    document.getElementById('expensesBalance').innerText = balance.toFixed(2);
-    document.getElementById('incomeDisplay').innerText = income.toFixed(2);
   }
 
-  // Load income and budgets on dashboard load
-  function loadIncome() {
-    const data = getUserData();
-    document.getElementById('incomeDisplay').innerText = data.income.toFixed(2);
-    document.getElementById('incomeInput').value = data.income ? data.income.toFixed(2) : '';
-  }
-  function loadBudget(section) {
-    const data = getUserData();
-    const budget = data.budgets[section];
-    document.getElementById(section + 'Budget').innerText = budget.toFixed(2);
-    document.getElementById(section + 'BudgetInput').value = budget ? budget.toFixed(2) : '';
-  }
-
-  // Load all expenses report
+  // Load and render expenses in expensesPage table, optionally filtered by date
   function loadExpenses() {
-    const data = getUserData();
+    const data = userData[currentUser];
+    if (!data) return;
     const filterDate = document.getElementById('filterDate').value;
     const tbody = document.getElementById('expensesTable');
     tbody.innerHTML = '';
-
-    // Gather all items with section
-    const allItems = [];
-    ['grocery', 'online', 'market'].forEach(section => {
-      data.items[section].forEach(item => {
-        allItems.push({
-          date: item.date,
-          section,
-          name: item.name,
-          amount: item.amount
-        });
-      });
-    });
-
-    // Filter by date if set
-    let filteredItems = allItems;
+    let filtered = data.expenses;
     if (filterDate) {
-      filteredItems = allItems.filter(item => item.date === filterDate);
+      filtered = filtered.filter(e => e.date === filterDate);
     }
-
-    filteredItems.forEach(item => {
+    filtered.sort((a,b) => new Date(b.date) - new Date(a.date));
+    filtered.forEach(e => {
       const tr = document.createElement('tr');
-      tr.innerHTML = `
-        <td>${item.date || ''}</td>
-        <td>${capitalize(item.section)}</td>
-        <td>${item.name}</td>
-        <td>₱${item.amount.toFixed(2)}</td>
-      `;
+      tr.innerHTML = `<td>${e.date}</td><td>${capitalize(e.section)}</td><td>${e.description}</td><td>₱${e.amount.toFixed(2)}</td>`;
       tbody.appendChild(tr);
     });
-
-    updateExpensesSummary();
+    // Update expenses display after filter
+    let totalFiltered = filtered.reduce((sum, e) => sum + e.amount, 0);
+    document.getElementById('expensesDisplay').textContent = totalFiltered.toFixed(2);
+    const income = data.income;
+    document.getElementById('incomeDisplay').textContent = income.toFixed(2);
+    document.getElementById('expensesBalance').textContent = (income - totalFiltered).toFixed(2);
   }
 
+  // Capitalize utility
   function capitalize(str) {
+    if (!str) return '';
     return str.charAt(0).toUpperCase() + str.slice(1);
   }
 
-  // Export expenses as PDF
-  async function exportPDF() {
+  // Export expenses table to PDF using jsPDF and autotable
+  function exportPDF() {
     const { jsPDF } = window.jspdf;
     const doc = new jsPDF();
     doc.setFontSize(18);
-    doc.text("Expenses Report", 14, 22);
-    doc.setFontSize(11);
-    doc.setTextColor(100);
-
-    // Prepare data for autotable
-    const rows = [];
-    document.querySelectorAll('#expensesTable tr').forEach(tr => {
-      const row = [];
-      tr.querySelectorAll('td').forEach(td => row.push(td.innerText));
-      rows.push(row);
+    doc.text("Budget Tracker Expenses Report", 14, 22);
+    doc.setFontSize(12);
+    const data = [];
+    document.querySelectorAll('#expensesTable tr').forEach(row => {
+      const rowData = [];
+      row.querySelectorAll('td').forEach(td => {
+        rowData.push(td.textContent);
+      });
+      if (rowData.length) data.push(rowData);
     });
-
+    if (data.length === 0) return alert('No data to export.');
     doc.autoTable({
       head: [['Date', 'Section', 'Description', 'Amount']],
-      body: rows,
+      body: data,
       startY: 30,
+      styles: { fontSize: 10 },
+      headStyles: { fillColor: [30, 144, 255] }
     });
-
     doc.save('expenses_report.pdf');
-  }
-
-  // Initialization on dashboard load
-  function initDashboard() {
-    showPage('expensesPage');
-
-    loadIncome();
-    ['grocery', 'online', 'market'].forEach(section => {
-      loadBudget(section);
-      renderItems(section);
-      updateBalance(section);
-    });
-
-    // Set filter date default to today if empty
-    const filterDateInput = document.getElementById('filterDate');
-    if (!filterDateInput.value) {
-      filterDateInput.value = new Date().toISOString().split('T')[0];
-    }
-
-    loadExpenses();
   }
 
   // On page load, check if logged in
@@ -521,7 +503,8 @@
     if (currentUser) {
       document.getElementById('loginPage').style.display = 'none';
       document.getElementById('dashboard').style.display = 'block';
-      initDashboard();
+      loadUserData();
+      showPage('expensesPage');
     }
   };
 </script>
